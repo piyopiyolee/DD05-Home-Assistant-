@@ -1,0 +1,74 @@
+# Merge into configuration.yaml (this is exactly what runs on the author's system).
+# Sentences: custom_sentences/zh-TW/treadmill.yaml and training.yaml
+intent_script:
+  TreadmillStart:
+    action:
+      - action: script.turn_on
+        target:
+          entity_id: script.treadmill_start
+    speech:
+      text: "走步機開始"
+  TreadmillPause:
+    action:
+      - action: script.turn_on
+        target:
+          entity_id: script.treadmill_pause
+    speech:
+      text: "走步機暫停"
+  TreadmillStop:
+    action:
+      - action: script.turn_on
+        target:
+          entity_id: script.treadmill_stop
+    speech:
+      text: "走步機停止"
+  TreadmillSpeedUp:
+    action:
+      - action: script.turn_on
+        target:
+          entity_id: script.treadmill_speed_up
+    speech:
+      text: "加速"
+  TreadmillSpeedDown:
+    action:
+      - action: script.turn_on
+        target:
+          entity_id: script.treadmill_speed_down
+    speech:
+      text: "減速"
+  TreadmillInclineUp:
+    action:
+      - action: script.turn_on
+        target:
+          entity_id: script.treadmill_incline_up
+    speech:
+      text: "坡度加一"
+  TreadmillInclineDown:
+    action:
+      - action: script.turn_on
+        target:
+          entity_id: script.treadmill_incline_down
+    speech:
+      text: "坡度減一"
+  # 訓練課表語音指令（Assist），句子在 custom_sentences/zh-TW/training.yaml
+  TrainingInterval35Start:
+    action:
+      - action: script.turn_on
+        target:
+          entity_id: script.training_interval35_start
+    speech:
+      text: "間歇訓練開始"
+  TrainingPause:
+    action:
+      - action: script.turn_on
+        target:
+          entity_id: script.training_pause
+    speech:
+      text: "切換訓練暫停與繼續"
+  TrainingEnd:
+    action:
+      - action: script.turn_on
+        target:
+          entity_id: script.training_end
+    speech:
+      text: "訓練已結束"

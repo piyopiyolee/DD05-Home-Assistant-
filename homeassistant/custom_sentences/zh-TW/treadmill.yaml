@@ -1,0 +1,43 @@
+# 走步機語音指令（2026-11-15）。對應 configuration.yaml 的 intent_script。
+language: "zh-TW"
+intents:
+  TreadmillStart:
+    data:
+      - sentences:
+          - "開始走[路]"
+          - "走步機開始"
+          - "跑步機開始"
+  TreadmillPause:
+    data:
+      - sentences:
+          - "暫停走[路]"
+          - "走步機暫停"
+          - "跑步機暫停"
+  TreadmillStop:
+    data:
+      - sentences:
+          - "停止走[路]"
+          - "走步機停止"
+          - "跑步機停止"
+  TreadmillSpeedUp:
+    data:
+      - sentences:
+          - "加速度"
+          - "加速"
+          - "走步機加速"
+  TreadmillSpeedDown:
+    data:
+      - sentences:
+          - "減速度"
+          - "減速"
+          - "走步機減速"
+  TreadmillInclineUp:
+    data:
+      - sentences:
+          - "加坡度"
+          - "坡度加"
+  TreadmillInclineDown:
+    data:
+      - sentences:
+          - "減坡度"
+          - "坡度減"

@@ -1,0 +1,3 @@
+# Add to configuration.yaml if you do not already use packages
+homeassistant:
+  packages: !include_dir_named packages

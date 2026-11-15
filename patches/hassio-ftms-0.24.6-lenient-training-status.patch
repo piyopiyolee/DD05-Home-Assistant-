@@ -1,0 +1,29 @@
+--- a/custom_components/ftms/__init__.py	2026-11-15 16:21:00.148556366 +0800
++++ b/custom_components/ftms/__init__.py	2026-11-15 16:21:00.148556366 +0800
+@@ -30,6 +30,26 @@
+ 
+ _LOGGER = logging.getLogger(__name__)
+ 
++# Local patch (2026-11-14): BGYM DD05 / FitShow FS-BT-F5 sends Training Status
++# flags with undefined bits (e.g. 0x46); pyftms rejects them and aborts setup.
++# Keep only the two spec-defined flag bits; on any parse error log and skip.
++# Revert: reinstall hassio-ftms 0.24.6 (or restore your backup of this file).
++from pyftms.client.backends.controller import MachineController as _FtmsMC
++
++_orig_on_training_status = _FtmsMC._on_training_status
++
++
++def _lenient_on_training_status(self, c, data):
++    try:
++        data = bytearray(data)
++        if data:
++            data[0] &= 0x03
++        _orig_on_training_status(self, c, data)
++    except Exception as exc:  # noqa: BLE001
++        _LOGGER.warning("Skipping unparsable FTMS training status %s: %s", bytes(data).hex(), exc)
++
++
++_FtmsMC._on_training_status = _lenient_on_training_status
+ type FtmsConfigEntry = ConfigEntry[FtmsData]
+ 
+ 

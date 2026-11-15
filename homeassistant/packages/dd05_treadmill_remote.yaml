@@ -1,0 +1,118 @@
+# DD05 treadmill remote-control scripts (used by the 'Treadmill' dashboard and voice commands).
+# Install: copy to /config/packages/ (requires 'homeassistant: packages: !include_dir_named packages').
+# Speed is only changed while the belt is already moving, so nothing can start the belt remotely by accident.
+script:
+  treadmill_toggle:
+    alias: "走步機 開始/暫停"
+    icon: mdi:play-pause
+    mode: single
+    sequence:
+      - if:
+          - condition: numeric_state
+            entity_id: sensor.treadmill_speed
+            above: 0
+        then:
+          - action: button.press
+            target:
+              entity_id: button.treadmill_pause
+        else:
+          - action: button.press
+            target:
+              entity_id: button.treadmill_start_resume
+
+  treadmill_stop:
+    alias: "走步機 停止"
+    icon: mdi:stop-circle
+    mode: single
+    sequence:
+      - action: button.press
+        target:
+          entity_id: button.treadmill_stop
+
+  treadmill_speed_up:
+    alias: "速度 +"
+    icon: mdi:chevron-double-up
+    mode: queued
+    max: 4
+    sequence:
+      - condition: numeric_state
+        entity_id: sensor.treadmill_speed
+        above: 0
+      - action: number.set_value
+        target:
+          entity_id: number.treadmill_speed
+        data:
+          value: >-
+            {% set cur = states('sensor.treadmill_speed') | float(0) %}
+            {{ ([6.0, [1.0, cur + 0.5] | max] | min) | round(1) }}
+      - delay:
+          milliseconds: 800
+
+  treadmill_speed_down:
+    alias: "速度 −"
+    icon: mdi:chevron-double-down
+    mode: queued
+    max: 4
+    sequence:
+      - condition: numeric_state
+        entity_id: sensor.treadmill_speed
+        above: 0
+      - action: number.set_value
+        target:
+          entity_id: number.treadmill_speed
+        data:
+          value: >-
+            {% set cur = states('sensor.treadmill_speed') | float(0) %}
+            {{ ([6.0, [1.0, cur - 0.5] | max] | min) | round(1) }}
+      - delay:
+          milliseconds: 800
+
+  treadmill_incline_up:
+    alias: "坡度 +"
+    icon: mdi:slope-uphill
+    mode: queued
+    max: 4
+    sequence:
+      - action: number.set_value
+        target:
+          entity_id: number.treadmill_inclination
+        data:
+          value: >-
+            {% set cur = states('sensor.treadmill_inclination') | float(0) %}
+            {{ ([15, [0, (cur | round(0)) + 1] | max] | min) | int }}
+      - delay:
+          milliseconds: 800
+
+  treadmill_incline_down:
+    alias: "坡度 −"
+    icon: mdi:slope-downhill
+    mode: queued
+    max: 4
+    sequence:
+      - action: number.set_value
+        target:
+          entity_id: number.treadmill_inclination
+        data:
+          value: >-
+            {% set cur = states('sensor.treadmill_inclination') | float(0) %}
+            {{ ([15, [0, (cur | round(0)) - 1] | max] | min) | int }}
+      - delay:
+          milliseconds: 800
+
+  treadmill_start:
+    alias: "走步機 開始"
+    icon: mdi:play
+    mode: single
+    sequence:
+      - action: button.press
+        target:
+          entity_id: button.treadmill_start_resume
+
+  treadmill_pause:
+    alias: "走步機 暫停"
+    icon: mdi:pause
+    mode: single
+    sequence:
+      - action: button.press
+        target:
+          entity_id: button.treadmill_pause

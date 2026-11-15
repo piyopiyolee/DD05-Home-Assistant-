@@ -1,0 +1,1096 @@
+# Home Assistant Training 課表執行器與「間歇訓練 35 分」Package
+# 部署位置：/config/packages/dd05_training.yaml
+# 需在 configuration.yaml 啟用：
+# homeassistant:
+#   packages: !include_dir_named packages
+
+# ==============================================================================
+# 1. Helpers (狀態與計時紀錄)
+# ==============================================================================
+input_select:
+  training_state:
+    name: "訓練狀態"
+    icon: mdi:run
+    options:
+      - idle
+      - starting
+      - running
+      - paused
+      - resuming
+      - finishing
+    initial: idle
+
+input_text:
+  training_program:
+    name: "目前課表"
+    icon: mdi:clipboard-list-outline
+    initial: "未開始"
+    max: 100
+  training_phase:
+    name: "目前階段"
+    icon: mdi:flag-checkered
+    initial: "待機"
+    max: 100
+  training_last_target:
+    name: "上次寫入目標"
+    icon: mdi:target
+    initial: ""
+    max: 64
+
+input_number:
+  training_start_ts:
+    name: "訓練開始時間戳"
+    icon: mdi:clock-start
+    min: 0
+    max: 9999999999
+    step: 1
+    mode: box
+    initial: 0
+  training_pause_ts:
+    name: "訓練暫停時間戳"
+    icon: mdi:clock-pause
+    min: 0
+    max: 9999999999
+    step: 1
+    mode: box
+    initial: 0
+  training_paused_total:
+    name: "累計暫停秒數"
+    icon: mdi:timer-pause-outline
+    min: 0
+    max: 9999999999
+    step: 1
+    mode: box
+    initial: 0
+    unit_of_measurement: "s"
+  training_elapsed:
+    name: "已訓練秒數"
+    icon: mdi:timer-outline
+    min: 0
+    max: 86400
+    step: 1
+    mode: box
+    initial: 0
+    unit_of_measurement: "s"
+  training_total:
+    name: "課表總秒數"
+    icon: mdi:timer-sand
+    min: 0
+    max: 86400
+    step: 1
+    mode: box
+    initial: 2100
+    unit_of_measurement: "s"
+  training_seg_end:
+    name: "本段結束秒數"
+    icon: mdi:timer-marker-outline
+    min: 0
+    max: 86400
+    step: 1
+    mode: box
+    initial: 0
+    unit_of_measurement: "s"
+  training_round:
+    name: "目前輪數"
+    icon: mdi:counter
+    min: 0
+    max: 99
+    step: 1
+    mode: box
+    initial: 0
+  training_rounds_total:
+    name: "總輪數"
+    icon: mdi:counter
+    min: 0
+    max: 99
+    step: 1
+    mode: box
+    initial: 6
+  training_target_speed:
+    name: "目標速度"
+    icon: mdi:speedometer
+    min: 0
+    max: 6.0
+    step: 0.1
+    mode: box
+    initial: 0
+    unit_of_measurement: "km/h"
+  training_target_incline:
+    name: "目標坡度"
+    icon: mdi:slope-uphill
+    min: 0
+    max: 15
+    step: 1
+    mode: box
+    initial: 0
+    unit_of_measurement: "%"
+
+# ==============================================================================
+# 2. Template Sensors (儀表板即時顯示 mm:ss 與中文化狀態)
+#    注意：name 使用英文 slug（確保 HA 自動產生對應的 sensor.training_* entity_id），
+#    同時加上 attributes.friendly_name（以及儀表板卡片 name 覆寫）顯示中文名稱。
+# ==============================================================================
+template:
+  - sensor:
+      - name: "training_state_display"
+        unique_id: training_state_display
+        icon: mdi:run
+        attributes:
+          friendly_name: "訓練狀態顯示"
+        state: >-
+          {% set st = states('input_select.training_state') %}
+          {% set m = {
+            'idle': '待機',
+            'starting': '啟動中（等待跑帶轉動）',
+            'running': '進行中',
+            'paused': '已暫停',
+            'resuming': '恢復中（等待跑帶轉動）',
+            'finishing': '結束中'
+          } %}
+          {{ m.get(st, st) }}
+
+      - name: "training_round_display"
+        unique_id: training_round_display
+        icon: mdi:counter
+        attributes:
+          friendly_name: "訓練輪數顯示"
+        state: >-
+          {% set st = states('input_select.training_state') %}
+          {% set r = states('input_number.training_round') | int(0) %}
+          {% set rt = states('input_number.training_rounds_total') | int(6) %}
+          {% if st == 'idle' %}
+            -
+          {% elif r <= 0 %}
+            暖身 (0 / {{ rt }})
+          {% else %}
+            {{ r }} / {{ rt }}
+          {% endif %}
+
+      - name: "training_remaining_mmss"
+        unique_id: training_remaining_mmss
+        icon: mdi:timer-outline
+        attributes:
+          friendly_name: "訓練總剩餘時間"
+        state: >-
+          {% set st = states('input_select.training_state') %}
+          {% if st == 'idle' %}
+            00:00
+          {% else %}
+            {% set total = states('input_number.training_total') | int(0) %}
+            {% set elapsed = states('input_number.training_elapsed') | int(0) %}
+            {% set rem = [0, total - elapsed] | max %}
+            {{ '%02d:%02d' | format(rem // 60, rem % 60) }}
+          {% endif %}
+
+      - name: "training_segment_remaining_mmss"
+        unique_id: training_segment_remaining_mmss
+        icon: mdi:timer-sand
+        attributes:
+          friendly_name: "訓練本段剩餘時間"
+        state: >-
+          {% set st = states('input_select.training_state') %}
+          {% if st == 'idle' %}
+            00:00
+          {% else %}
+            {% set seg_end = states('input_number.training_seg_end') | int(0) %}
+            {% set elapsed = states('input_number.training_elapsed') | int(0) %}
+            {% set rem = [0, seg_end - elapsed] | max %}
+            {{ '%02d:%02d' | format(rem // 60, rem % 60) }}
+          {% endif %}
+
+      - name: "training_elapsed_mmss"
+        unique_id: training_elapsed_mmss
+        icon: mdi:clock-outline
+        attributes:
+          friendly_name: "訓練已進行時間"
+        state: >-
+          {% set st = states('input_select.training_state') %}
+          {% if st == 'idle' %}
+            00:00
+          {% else %}
+            {% set elapsed = states('input_number.training_elapsed') | int(0) %}
+            {{ '%02d:%02d' | format(elapsed // 60, elapsed % 60) }}
+          {% endif %}
+
+# ==============================================================================
+# 3. Scripts (通用執行器、控制腳本、課表定義)
+# ==============================================================================
+script:
+  # ----------------------------------------------------------------------------
+  # 通知輔助腳本（同時發送手機 tag 通知與 persistent_notification）
+  # 安全設計：
+  # 1. 執行器改用 script.turn_on 非同步呼叫本腳本（不阻塞也不影響執行器生命週期）。
+  # 2. 手機通知先以 choose + integration_entities('mobile_app') 確認整合已載入，
+  #    再加上 continue_on_error: true，確保即使服務不存在也絕不中斷執行器。
+  # ----------------------------------------------------------------------------
+  training_notify:
+    alias: "訓練通知（內部輔助）"
+    icon: mdi:bell-ring-outline
+    mode: parallel
+    max: 5
+    fields:
+      title:
+        description: "通知標題"
+      message:
+        description: "通知內容"
+    sequence:
+      - action: persistent_notification.create
+        continue_on_error: true
+        data:
+          notification_id: training_status
+          title: "{{ title }}"
+          message: "{{ message }}"
+      - choose:
+          - conditions:
+              - condition: template
+                value_template: "{{ integration_entities('mobile_app') | count > 0 }}"
+            sequence:
+              - action: notify.mobile_app_YOUR_PHONE  # <-- change to your phone notify service
+                continue_on_error: true
+                data:
+                  title: "{{ title }}"
+                  message: "{{ message }}"
+                  data:
+                    tag: training_status
+
+  # ----------------------------------------------------------------------------
+  # 課表定義 1：間歇訓練 35 分（呼叫通用執行器 script.training_run）
+  # 新增課表時，只需複製此格式新增一個 script，不需修改執行器。
+  # ----------------------------------------------------------------------------
+  training_interval35_start:
+    alias: "間歇訓練 35 分（開始 / 繼續）"
+    description: "0-3分暖身(3.5/0)，6輪×5分（前1分平順加速至4.5/6、維持2分，緩和2分3.5/0；第6輪緩和延長為4分），共35分。"
+    icon: mdi:run-fast
+    mode: single
+    sequence:
+      - choose:
+          # 若在暫停狀態按「開始」，視同「繼續」
+          - conditions:
+              - condition: state
+                entity_id: input_select.training_state
+                state: paused
+            sequence:
+              - action: script.training_pause
+          # 若只在待機狀態才啟動新課表
+          - conditions:
+              - condition: state
+                entity_id: input_select.training_state
+                state: idle
+            sequence:
+              - action: script.turn_on
+                target:
+                  entity_id: script.training_run
+                data:
+                  variables:
+                    program_name: "間歇訓練 35 分"
+                    rounds_total: 6
+                    segments:
+                      - name: "暖身"
+                        round: 0
+                        dur: 180
+                        s0: 3.5
+                        i0: 0
+                      - name: "第 1 輪：高強度（加速＋維持）"
+                        round: 1
+                        dur: 180
+                        s0: 3.5
+                        i0: 0
+                        s1: 4.5
+                        i1: 6
+                        ramp_dur: 60
+                        step: 10
+                      - name: "第 1 輪：緩和"
+                        round: 1
+                        dur: 120
+                        s0: 3.5
+                        i0: 0
+                      - name: "第 2 輪：高強度（加速＋維持）"
+                        round: 2
+                        dur: 180
+                        s0: 3.5
+                        i0: 0
+                        s1: 4.5
+                        i1: 6
+                        ramp_dur: 60
+                        step: 10
+                      - name: "第 2 輪：緩和"
+                        round: 2
+                        dur: 120
+                        s0: 3.5
+                        i0: 0
+                      - name: "第 3 輪：高強度（加速＋維持）"
+                        round: 3
+                        dur: 180
+                        s0: 3.5
+                        i0: 0
+                        s1: 4.5
+                        i1: 6
+                        ramp_dur: 60
+                        step: 10
+                      - name: "第 3 輪：緩和"
+                        round: 3
+                        dur: 120
+                        s0: 3.5
+                        i0: 0
+                      - name: "第 4 輪：高強度（加速＋維持）"
+                        round: 4
+                        dur: 180
+                        s0: 3.5
+                        i0: 0
+                        s1: 4.5
+                        i1: 6
+                        ramp_dur: 60
+                        step: 10
+                      - name: "第 4 輪：緩和"
+                        round: 4
+                        dur: 120
+                        s0: 3.5
+                        i0: 0
+                      - name: "第 5 輪：高強度（加速＋維持）"
+                        round: 5
+                        dur: 180
+                        s0: 3.5
+                        i0: 0
+                        s1: 4.5
+                        i1: 6
+                        ramp_dur: 60
+                        step: 10
+                      - name: "第 5 輪：緩和"
+                        round: 5
+                        dur: 120
+                        s0: 3.5
+                        i0: 0
+                      - name: "第 6 輪：高強度（加速＋維持）"
+                        round: 6
+                        dur: 180
+                        s0: 3.5
+                        i0: 0
+                        s1: 4.5
+                        i1: 6
+                        ramp_dur: 60
+                        step: 10
+                      - name: "第 6 輪：緩和（延長收操）"
+                        round: 6
+                        dur: 240
+                        s0: 3.5
+                        i0: 0
+
+  # ----------------------------------------------------------------------------
+  # 通用課表執行器 script.training_run
+  # ----------------------------------------------------------------------------
+  training_run:
+    alias: "課表通用執行器"
+    description: "接收 program_name 與 segments 參數，以時間戳精準計時並控制跑帶速度與坡度。"
+    icon: mdi:play-circle-outline
+    mode: single
+    fields:
+      program_name:
+        description: "課表名稱"
+        example: "間歇訓練 35 分"
+      rounds_total:
+        description: "總輪數"
+        example: 6
+      segments:
+        description: "段落清單 [{name, round, dur, s0, i0, s1?, i1?, ramp_dur?, step?}]"
+    variables:
+      prog_name: "{{ program_name | default('訓練課表') }}"
+      total_dur: "{{ segments | map(attribute='dur') | map('int') | sum }}"
+      r_total: "{{ rounds_total | default(segments | map(attribute='round') | map('int') | max) }}"
+      first_seg: "{{ segments[0] }}"
+      init_s: >-
+        {% if first_seg.s1 is defined and first_seg.step is defined %}
+          {% set r_dur = first_seg.ramp_dur | default(first_seg.dur) | int %}
+          {% set steps = [1, (r_dur / (first_seg.step | int)) | int] | max %}
+          {% set raw_s = (first_seg.s0 | float) + ((first_seg.s1 | float) - (first_seg.s0 | float)) * 1 / steps %}
+        {% else %}
+          {% set raw_s = first_seg.s0 | float %}
+        {% endif %}
+        {{ ([6.0, [1.0, raw_s] | max] | min) | round(1) }}
+      init_i: >-
+        {% if first_seg.i1 is defined and first_seg.step is defined %}
+          {% set r_dur = first_seg.ramp_dur | default(first_seg.dur) | int %}
+          {% set steps = [1, (r_dur / (first_seg.step | int)) | int] | max %}
+          {% set raw_i = (first_seg.i0 | float) + ((first_seg.i1 | float) - (first_seg.i0 | float)) * 1 / steps %}
+        {% else %}
+          {% set raw_i = first_seg.i0 | float %}
+        {% endif %}
+        {{ ([15, [0, raw_i | round(0)] | max] | min) | int }}
+    sequence:
+      # 1. 初始化狀態為 starting 與重置 helpers
+      - action: input_select.select_option
+        target:
+          entity_id: input_select.training_state
+        data:
+          option: starting
+      - action: input_text.set_value
+        target:
+          entity_id: input_text.training_program
+        data:
+          value: "{{ prog_name }}"
+      - action: input_text.set_value
+        target:
+          entity_id: input_text.training_phase
+        data:
+          value: "啟動中（等待跑帶轉動）"
+      - action: input_text.set_value
+        target:
+          entity_id: input_text.training_last_target
+        data:
+          value: ""
+      - action: input_number.set_value
+        target:
+          entity_id: input_number.training_total
+        data:
+          value: "{{ total_dur }}"
+      - action: input_number.set_value
+        target:
+          entity_id: input_number.training_elapsed
+        data:
+          value: 0
+      - action: input_number.set_value
+        target:
+          entity_id: input_number.training_seg_end
+        data:
+          value: "{{ first_seg.dur | int }}"
+      - action: input_number.set_value
+        target:
+          entity_id: input_number.training_round
+        data:
+          value: "{{ first_seg.round | int }}"
+      - action: input_number.set_value
+        target:
+          entity_id: input_number.training_rounds_total
+        data:
+          value: "{{ r_total | int }}"
+      - action: input_number.set_value
+        target:
+          entity_id: input_number.training_paused_total
+        data:
+          value: 0
+      - action: input_number.set_value
+        target:
+          entity_id: input_number.training_pause_ts
+        data:
+          value: 0
+      - action: input_number.set_value
+        target:
+          entity_id: input_number.training_target_speed
+        data:
+          value: "{{ init_s }}"
+      - action: input_number.set_value
+        target:
+          entity_id: input_number.training_target_incline
+        data:
+          value: "{{ init_i }}"
+
+      # 2. 按下 start_resume 啟動走步機（若已在轉動則不重按）
+      - if:
+          - condition: template
+            value_template: "{{ states('sensor.treadmill_speed') | float(0) <= 0 }}"
+        then:
+          - action: button.press
+            target:
+              entity_id: button.treadmill_start_resume
+
+      # 3. 等待跑帶實際轉動（sensor.treadmill_speed > 0），逾時 30 秒保護
+      - wait_template: "{{ states('sensor.treadmill_speed') | float(0) > 0 }}"
+        timeout: "00:00:30"
+      - if:
+          - condition: template
+            value_template: "{{ not wait.completed }}"
+        then:
+          - action: button.press
+            target:
+              entity_id: button.treadmill_stop
+          - action: input_select.select_option
+            target:
+              entity_id: input_select.training_state
+            data:
+              option: idle
+          - action: input_text.set_value
+            target:
+              entity_id: input_text.training_phase
+            data:
+              value: "待機（啟動逾時）"
+          - action: script.turn_on
+            continue_on_error: true
+            target:
+              entity_id: script.training_notify
+            data:
+              variables:
+                title: "⚠️ 訓練啟動逾時"
+                message: "{{ prog_name }}：等待走步機轉動超過 30 秒，已取消課表並送出停止指令。"
+          - stop: "Treadmill start timeout"
+
+      # 4. 跑帶開始轉動：紀錄開始時間戳、進入 running、寫入首段速度與坡度並通知
+      - variables:
+          start_epoch: "{{ now().timestamp() | int }}"
+      - action: input_number.set_value
+        target:
+          entity_id: input_number.training_start_ts
+        data:
+          value: "{{ start_epoch }}"
+      - action: input_select.select_option
+        target:
+          entity_id: input_select.training_state
+        data:
+          option: running
+      - action: input_text.set_value
+        target:
+          entity_id: input_text.training_phase
+        data:
+          value: "{{ first_seg.name }}"
+      - action: input_text.set_value
+        target:
+          entity_id: input_text.training_last_target
+        data:
+          value: "{{ init_s }}/{{ init_i }}"
+      - if:
+          - condition: numeric_state
+            entity_id: sensor.treadmill_speed
+            above: 0
+        then:
+          - action: number.set_value
+            target:
+              entity_id: number.treadmill_speed
+            data:
+              value: "{{ init_s }}"
+          - action: number.set_value
+            target:
+              entity_id: number.treadmill_inclination
+            data:
+              value: "{{ init_i }}"
+      - action: script.turn_on
+        continue_on_error: true
+        target:
+          entity_id: script.training_notify
+        data:
+          variables:
+            title: "🏃 {{ prog_name }}"
+            message: >-
+              開始【{{ first_seg.name }}】（{{ (first_seg.dur | int) // 60 }}:{{ '%02d' | format((first_seg.dur | int) % 60) }}）｜目標速度 {{ init_s }} km/h、坡度 {{ init_i }}%
+
+      # 5. 每秒主迴圈（以時間戳計算經過時間，不累加 delay）
+      - repeat:
+          while:
+            - condition: template
+              value_template: >-
+                {{ states('input_select.training_state') in ['running', 'paused', 'resuming']
+                   and (states('input_number.training_elapsed') | int(0)) < (total_dur | int) }}
+          sequence:
+            - delay:
+                seconds: 1
+            - choose:
+                # 只有在 running 狀態才推進計時與寫入目標
+                - conditions:
+                    - condition: state
+                      entity_id: input_select.training_state
+                      state: running
+                  sequence:
+                    - variables:
+                        now_ts: "{{ now().timestamp() | int }}"
+                        start_ts: "{{ states('input_number.training_start_ts') | int(0) }}"
+                        paused_tot: "{{ states('input_number.training_paused_total') | int(0) }}"
+                        raw_elapsed: "{{ [0, now_ts - start_ts - paused_tot] | max }}"
+                        cur_elapsed: "{{ [total_dur | int, raw_elapsed | int] | min }}"
+                        # 計算目前所在段落與目標值（以 JSON 輸出確保型別完整）
+                        seg_calc: >-
+                          {% set ns = namespace(acc=0, found=false, name='', round=0, seg_end=total_dur|int, seg_dur=0, s=3.5, i=0) %}
+                          {% for seg in segments %}
+                            {% if not ns.found %}
+                              {% set s_start = ns.acc %}
+                              {% set s_end = ns.acc + (seg.dur | int) %}
+                              {% set ns.acc = s_end %}
+                              {% if cur_elapsed < s_end or loop.last %}
+                                {% set ns.found = true %}
+                                {% set ns.name = seg.name %}
+                                {% set ns.round = seg.round | int %}
+                                {% set ns.seg_end = s_end %}
+                                {% set ns.seg_dur = seg.dur | int %}
+                                {% set t_in = [0, cur_elapsed - s_start] | max %}
+                                {% if seg.s1 is defined and seg.step is defined %}
+                                  {% set r_dur = seg.ramp_dur | default(seg.dur) | int %}
+                                  {% set step_s = seg.step | int %}
+                                  {% set steps = [1, (r_dur / step_s) | int] | max %}
+                                  {% if t_in < r_dur %}
+                                    {% set k = [steps, (t_in // step_s) + 1] | min %}
+                                  {% else %}
+                                    {% set k = steps %}
+                                  {% endif %}
+                                  {% set raw_s = (seg.s0 | float) + ((seg.s1 | float) - (seg.s0 | float)) * k / steps %}
+                                  {% set raw_i = (seg.i0 | float) + ((seg.i1 | default(seg.i0) | float) - (seg.i0 | float)) * k / steps %}
+                                {% else %}
+                                  {% set raw_s = seg.s0 | float %}
+                                  {% set raw_i = seg.i0 | float %}
+                                {% endif %}
+                                {% set ns.s = ([6.0, [1.0, raw_s] | max] | min) | round(1) %}
+                                {% set ns.i = ([15, [0, raw_i | round(0)] | max] | min) | int %}
+                              {% endif %}
+                            {% endif %}
+                          {% endfor %}
+                          {{ {'name': ns.name, 'round': ns.round, 'seg_end': ns.seg_end, 'seg_dur': ns.seg_dur, 's': ns.s, 'i': ns.i} | to_json }}
+                        parsed: "{{ seg_calc | from_json }}"
+                        prev_phase: "{{ states('input_text.training_phase') }}"
+                        prev_target: "{{ states('input_text.training_last_target') }}"
+                        new_target: "{{ parsed.s }}/{{ parsed.i }}"
+
+                    # 更新計時與畫面 helpers
+                    - action: input_number.set_value
+                      target:
+                        entity_id: input_number.training_elapsed
+                      data:
+                        value: "{{ cur_elapsed }}"
+                    - action: input_number.set_value
+                      target:
+                        entity_id: input_number.training_seg_end
+                      data:
+                        value: "{{ parsed.seg_end }}"
+                    - action: input_number.set_value
+                      target:
+                        entity_id: input_number.training_round
+                      data:
+                        value: "{{ parsed.round }}"
+                    - action: input_number.set_value
+                      target:
+                        entity_id: input_number.training_target_speed
+                      data:
+                        value: "{{ parsed.s }}"
+                    - action: input_number.set_value
+                      target:
+                        entity_id: input_number.training_target_incline
+                      data:
+                        value: "{{ parsed.i }}"
+
+                    # 若段落改變（且尚未到達課表終點），更新階段名稱並發送段落通知
+                    - if:
+                        - condition: template
+                          value_template: "{{ cur_elapsed < (total_dur | int) and parsed.name != prev_phase }}"
+                      then:
+                        - action: input_text.set_value
+                          target:
+                            entity_id: input_text.training_phase
+                          data:
+                            value: "{{ parsed.name }}"
+                        - action: script.turn_on
+                          continue_on_error: true
+                          target:
+                            entity_id: script.training_notify
+                          data:
+                            variables:
+                              title: "🏃 {{ prog_name }}"
+                              message: >-
+                                進入【{{ parsed.name }}】（{{ (parsed.seg_dur | int) // 60 }}:{{ '%02d' | format((parsed.seg_dur | int) % 60) }}）｜目標速度 {{ parsed.s }} km/h、坡度 {{ parsed.i }}%
+
+                    # 若目標速度或坡度改變（且尚未到達終點），安全檢查 speed > 0 後寫入走步機
+                    - if:
+                        - condition: template
+                          value_template: >-
+                            {{ cur_elapsed < (total_dur | int)
+                               and new_target != prev_target
+                               and states('input_select.training_state') == 'running'
+                               and (states('sensor.treadmill_speed') | float(0)) > 0 }}
+                      then:
+                        - action: input_text.set_value
+                          target:
+                            entity_id: input_text.training_last_target
+                          data:
+                            value: "{{ new_target }}"
+                        - action: number.set_value
+                          target:
+                            entity_id: number.treadmill_speed
+                          data:
+                            value: "{{ parsed.s }}"
+                        - action: number.set_value
+                          target:
+                            entity_id: number.treadmill_inclination
+                          data:
+                            value: "{{ parsed.i }}"
+
+      # 6. 課表正常跑完總時長：送出停止指令、回到 idle、發送完成通知
+      - if:
+          - condition: template
+            value_template: >-
+              {{ states('input_select.training_state') == 'running'
+                 and (states('input_number.training_elapsed') | int(0)) >= (total_dur | int) }}
+        then:
+          - action: input_select.select_option
+            target:
+              entity_id: input_select.training_state
+            data:
+              option: finishing
+          - action: button.press
+            target:
+              entity_id: button.treadmill_stop
+          - action: input_select.select_option
+            target:
+              entity_id: input_select.training_state
+            data:
+              option: idle
+          - action: input_text.set_value
+            target:
+              entity_id: input_text.training_phase
+            data:
+              value: "已完成"
+          - action: input_text.set_value
+            target:
+              entity_id: input_text.training_last_target
+            data:
+              value: ""
+          - action: script.turn_on
+            continue_on_error: true
+            target:
+              entity_id: script.training_notify
+            data:
+              variables:
+                title: "🎉 訓練完成！"
+                message: "{{ prog_name }}（共 {{ (total_dur | int) // 60 }} 分鐘）已完成，走步機已停止。"
+
+  # ----------------------------------------------------------------------------
+  # 暫停 / 繼續 切換腳本 script.training_pause
+  # ----------------------------------------------------------------------------
+  training_pause:
+    alias: "訓練 暫停 / 繼續"
+    description: "running 時按暫停（走步機 pause + 暫停計時）；paused 時按繼續（start_resume + 等跑帶轉動 + 恢復計時與寫入目標）。idle 時不動作。"
+    icon: mdi:play-pause
+    mode: single
+    sequence:
+      - choose:
+          # Case 1: 目前 running -> 切換為 paused
+          - conditions:
+              - condition: state
+                entity_id: input_select.training_state
+                state: running
+            sequence:
+              - variables:
+                  p_ts: "{{ now().timestamp() | int }}"
+              - action: input_number.set_value
+                target:
+                  entity_id: input_number.training_pause_ts
+                data:
+                  value: "{{ p_ts }}"
+              - action: input_select.select_option
+                target:
+                  entity_id: input_select.training_state
+                data:
+                  option: paused
+              - action: button.press
+                target:
+                  entity_id: button.treadmill_pause
+              - action: script.turn_on
+                continue_on_error: true
+                target:
+                  entity_id: script.training_notify
+                data:
+                  variables:
+                    title: "⏸️ 訓練已暫停"
+                    message: >-
+                      {{ states('input_text.training_program') }} 已暫停（目前階段：{{ states('input_text.training_phase') }}，剩餘 {{ states('sensor.training_remaining_mmss') }}）。
+
+          # Case 2: 目前 paused -> 切換為 resuming -> 等轉動 -> 回 running
+          - conditions:
+              - condition: state
+                entity_id: input_select.training_state
+                state: paused
+            sequence:
+              - action: input_select.select_option
+                target:
+                  entity_id: input_select.training_state
+                data:
+                  option: resuming
+              - if:
+                  - condition: template
+                    value_template: "{{ states('sensor.treadmill_speed') | float(0) <= 0 }}"
+                then:
+                  - action: button.press
+                    target:
+                      entity_id: button.treadmill_start_resume
+              - wait_template: "{{ states('sensor.treadmill_speed') | float(0) > 0 }}"
+                timeout: "00:00:30"
+              - if:
+                  - condition: template
+                    value_template: "{{ not wait.completed }}"
+                then:
+                  # 恢復逾時：中止課表並送 stop 確保安全
+                  - action: button.press
+                    target:
+                      entity_id: button.treadmill_stop
+                  - action: input_select.select_option
+                    target:
+                      entity_id: input_select.training_state
+                    data:
+                      option: idle
+                  - action: script.turn_off
+                    target:
+                      entity_id: script.training_run
+                  - action: input_text.set_value
+                    target:
+                      entity_id: input_text.training_phase
+                    data:
+                      value: "待機（恢復逾時）"
+                  - action: script.turn_on
+                    continue_on_error: true
+                    target:
+                      entity_id: script.training_notify
+                    data:
+                      variables:
+                        title: "⚠️ 訓練恢復逾時"
+                        message: "等待走步機恢復轉動超過 30 秒，已安全中止課表並送出停止指令。"
+                  - stop: "Resume timeout"
+
+              # 跑帶已轉動：把本次暫停秒數加進 training_paused_total
+              - variables:
+                  resume_ts: "{{ now().timestamp() | int }}"
+                  pause_ts: "{{ states('input_number.training_pause_ts') | int(resume_ts) }}"
+                  prev_paused: "{{ states('input_number.training_paused_total') | int(0) }}"
+                  add_paused: "{{ [0, resume_ts - pause_ts] | max }}"
+                  new_paused_total: "{{ prev_paused + add_paused }}"
+                  cur_s: "{{ ([6.0, [1.0, states('input_number.training_target_speed') | float(3.5)] | max] | min) | round(1) }}"
+                  cur_i: "{{ ([15, [0, (states('input_number.training_target_incline') | float(0)) | round(0)] | max] | min) | int }}"
+              - action: input_number.set_value
+                target:
+                  entity_id: input_number.training_paused_total
+                data:
+                  value: "{{ new_paused_total }}"
+              - action: input_number.set_value
+                target:
+                  entity_id: input_number.training_pause_ts
+                data:
+                  value: 0
+              # 清空 last_target 並重新寫入目前目標速度與坡度（安全檢查 speed > 0）
+              - action: input_text.set_value
+                target:
+                  entity_id: input_text.training_last_target
+                data:
+                  value: "{{ cur_s }}/{{ cur_i }}"
+              - if:
+                  - condition: numeric_state
+                    entity_id: sensor.treadmill_speed
+                    above: 0
+                then:
+                  - action: number.set_value
+                    target:
+                      entity_id: number.treadmill_speed
+                    data:
+                      value: "{{ cur_s }}"
+                  - action: number.set_value
+                    target:
+                      entity_id: number.treadmill_inclination
+                    data:
+                      value: "{{ cur_i }}"
+              - action: input_select.select_option
+                target:
+                  entity_id: input_select.training_state
+                data:
+                  option: running
+              - action: script.turn_on
+                continue_on_error: true
+                target:
+                  entity_id: script.training_notify
+                data:
+                  variables:
+                    title: "▶️ 訓練已繼續"
+                    message: >-
+                      {{ states('input_text.training_program') }} 繼續進行（{{ states('input_text.training_phase') }}）｜目標速度 {{ cur_s }} km/h、坡度 {{ cur_i }}%。
+
+  # ----------------------------------------------------------------------------
+  # 結束 / 中止課表腳本 script.training_end
+  # ----------------------------------------------------------------------------
+  training_end:
+    alias: "訓練 結束"
+    description: "立即中止課表、關閉執行器與暫停腳本，並送出走步機 stop。"
+    icon: mdi:stop-circle
+    mode: single
+    sequence:
+      - variables:
+          was_active: "{{ states('input_select.training_state') != 'idle' }}"
+          prog_name: "{{ states('input_text.training_program') }}"
+          el_mmss: "{{ states('sensor.training_elapsed_mmss') }}"
+      - action: input_select.select_option
+        target:
+          entity_id: input_select.training_state
+        data:
+          option: idle
+      - action: script.turn_off
+        target:
+          entity_id:
+            - script.training_run
+            - script.training_pause
+      - action: button.press
+        target:
+          entity_id: button.treadmill_stop
+      - action: input_text.set_value
+        target:
+          entity_id: input_text.training_phase
+        data:
+          value: "待機"
+      - action: input_text.set_value
+        target:
+          entity_id: input_text.training_last_target
+        data:
+          value: ""
+      - action: input_number.set_value
+        target:
+          entity_id: input_number.training_elapsed
+        data:
+          value: 0
+      - action: input_number.set_value
+        target:
+          entity_id: input_number.training_seg_end
+        data:
+          value: 0
+      - action: input_number.set_value
+        target:
+          entity_id: input_number.training_round
+        data:
+          value: 0
+      - action: input_number.set_value
+        target:
+          entity_id: input_number.training_target_speed
+        data:
+          value: 0
+      - action: input_number.set_value
+        target:
+          entity_id: input_number.training_target_incline
+        data:
+          value: 0
+      - if:
+          - condition: template
+            value_template: "{{ was_active }}"
+        then:
+          - action: script.turn_on
+            continue_on_error: true
+            target:
+              entity_id: script.training_notify
+            data:
+              variables:
+                title: "⏹️ 訓練已結束"
+                message: "{{ prog_name }} 已手動結束（已訓練時間：{{ el_mmss }}），走步機已停止。"
+
+# ==============================================================================
+# 4. Automations (安全守護與 HA 啟動重設)
+#    注意：絕不包含任何排程自動啟動課表的動作！
+# ==============================================================================
+automation:
+  # 守護 1：執行中若跑帶停止（speed < 0.1 持續 3 秒）或斷線（unavailable/unknown 持續 10 秒），自動中止課表
+  - id: training_safety_watchdog
+    alias: "訓練安全守護（跑帶停止或斷線自動中止）"
+    description: "課表 running 時若跑帶被手動按停、拔安全鎖（speed < 0.1 達 3 秒）或 FTMS 斷線（unavailable 達 10 秒），立即中止課表並通知，避免跑帶靜止時送出速度指令。"
+    mode: single
+    triggers:
+      - trigger: numeric_state
+        entity_id: sensor.treadmill_speed
+        below: 0.1
+        for:
+          seconds: 3
+        id: belt_stopped
+      - trigger: state
+        entity_id: sensor.treadmill_speed
+        to:
+          - "unavailable"
+          - "unknown"
+        for:
+          seconds: 10
+        id: sensor_offline
+      # 轉入 running 時若跑帶已經處於停止狀態達 3 秒以上，也能捕捉
+      - trigger: state
+        entity_id: input_select.training_state
+        to: "running"
+        for:
+          seconds: 3
+        id: state_running_check
+    conditions:
+      - condition: state
+        entity_id: input_select.training_state
+        state: "running"
+      - condition: template
+        value_template: >-
+          {{ states('sensor.treadmill_speed') in ['unavailable', 'unknown']
+             or (states('sensor.treadmill_speed') | float(0)) < 0.1 }}
+    actions:
+      - variables:
+          prog_name: "{{ states('input_text.training_program') }}"
+          phase_name: "{{ states('input_text.training_phase') }}"
+          reason: >-
+            {% if trigger.id == 'sensor_offline' or states('sensor.treadmill_speed') in ['unavailable', 'unknown'] %}
+              走步機連線中斷（sensor unavailable 超過 10 秒）
+            {% else %}
+              偵測到跑帶已停止轉動（手動停止／暫停或安全鎖脫落）
+            {% endif %}
+      - action: input_select.select_option
+        target:
+          entity_id: input_select.training_state
+        data:
+          option: idle
+      - action: script.turn_off
+        target:
+          entity_id:
+            - script.training_run
+            - script.training_pause
+      - action: input_text.set_value
+        target:
+          entity_id: input_text.training_phase
+        data:
+          value: "已安全中止"
+      - action: input_text.set_value
+        target:
+          entity_id: input_text.training_last_target
+        data:
+          value: ""
+      - action: script.turn_on
+        continue_on_error: true
+        target:
+          entity_id: script.training_notify
+        data:
+          variables:
+            title: "🛑 訓練安全中止"
+            message: "{{ prog_name }}（{{ phase_name }}）：{{ reason }}，已自動中止課表。"
+
+  # 守護 2：HA 重啟後強制將狀態重設為 idle，防止 recorder 還原殘留 running
+  - id: training_reset_on_ha_start
+    alias: "訓練狀態重設（HA 啟動時回 idle）"
+    description: "Home Assistant 啟動時強制將訓練狀態重設為 idle，確保不會殘留 running 狀態。"
+    mode: single
+    triggers:
+      - trigger: homeassistant
+        event: start
+    actions:
+      - action: input_select.select_option
+        target:
+          entity_id: input_select.training_state
+        data:
+          option: idle
+      - action: input_text.set_value
+        target:
+          entity_id: input_text.training_phase
+        data:
+          value: "待機"
+      - action: input_text.set_value
+        target:
+          entity_id: input_text.training_last_target
+        data:
+          value: ""
+      - action: input_number.set_value
+        target:
+          entity_id: input_number.training_elapsed
+        data:
+          value: 0
+      - action: input_number.set_value
+        target:
+          entity_id: input_number.training_seg_end
+        data:
+          value: 0
+      - action: input_number.set_value
+        target:
+          entity_id: input_number.training_round
+        data:
+          value: 0
+      - action: input_number.set_value
+        target:
+          entity_id: input_number.training_target_speed
+        data:
+          value: 0
+      - action: input_number.set_value
+        target:
+          entity_id: input_number.training_target_incline
+        data:
+          value: 0

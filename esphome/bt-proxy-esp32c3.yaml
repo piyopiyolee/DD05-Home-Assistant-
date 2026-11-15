@@ -1,0 +1,40 @@
+# ESP32-C3 Bluetooth proxy for BGYM DD05 (FTMS) - tested with ESPHome 2026.10.1
+# KEY FIX: pin ESP-IDF 5.5.5. With the default ESP-IDF 5.5.6, GATT service discovery
+# stopped early and the FTMS service (0x1826) was never reported to Home Assistant.
+# Secrets live in secrets.yaml (see secrets.yaml.example). Never commit secrets.yaml.
+
+esphome:
+  name: bt-proxy
+  friendly_name: BT Proxy
+  name_add_mac_suffix: true
+
+esp32:
+  board: esp32-c3-devkitm-1
+  variant: esp32c3
+  framework:
+    type: esp-idf
+    version: 5.5.5
+
+logger:
+
+api:
+  encryption:
+    key: !secret api_encryption_key
+
+ota:
+  - platform: esphome
+    password: !secret ota_password
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  ap:
+    ssid: "BT Proxy Fallback"
+    password: !secret ap_password
+
+esp32_ble_tracker:
+  scan_parameters:
+    active: true
+
+bluetooth_proxy:
+  active: true

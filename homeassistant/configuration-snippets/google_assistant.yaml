@@ -1,0 +1,60 @@
+# Google Assistant (manual YAML setup) - add these entries under google_assistant.entity_config.
+# Scripts appear in Google Home as scenes, e.g. say "Hey Google, 開始走" / "activate 走步機開始".
+# After editing: restart Home Assistant, then call google_assistant.request_sync.
+google_assistant:
+  project_id: YOUR_GOOGLE_PROJECT_ID
+  service_account: !include SERVICE_ACCOUNT.json
+  report_state: true
+  expose_by_default: false
+  entity_config:
+    # 走步機語音指令（2026-11-15）：腳本在 Google 端是「場景」
+    script.treadmill_start:
+      expose: true
+      name: 走步機開始
+      aliases: [開始走]
+    script.treadmill_pause:
+      expose: true
+      name: 走步機暫停
+      aliases: [暫停走]
+    script.treadmill_stop:
+      expose: true
+      name: 走步機停止
+      aliases: [停止走]
+    script.treadmill_speed_up:
+      expose: true
+      name: 走步機加速
+      aliases: [加速度]
+    script.treadmill_speed_down:
+      expose: true
+      name: 走步機減速
+      aliases: [減速度]
+    script.treadmill_incline_up:
+      expose: true
+      name: 走步機加坡度
+      aliases: [加坡度]
+    script.treadmill_incline_down:
+      expose: true
+      name: 走步機減坡度
+      aliases: [減坡度]
+    # 訓練課表語音指令（Google Home 場景）
+    script.training_interval35_start:
+      expose: true
+      name: 間歇訓練開始
+      aliases:
+        - 開始間歇訓練
+        - 開始訓練
+        - 訓練開始
+    script.training_pause:
+      expose: true
+      name: 間歇訓練暫停
+      aliases:
+        - 訓練暫停
+        - 暫停訓練
+        - 繼續訓練
+    script.training_end:
+      expose: true
+      name: 間歇訓練結束
+      aliases:
+        - 訓練結束
+        - 結束訓練
+        - 停止訓練
