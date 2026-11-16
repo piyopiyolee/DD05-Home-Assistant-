@@ -13,10 +13,12 @@ script:
             above: 0
         then:
           - action: button.press
+            continue_on_error: true
             target:
               entity_id: button.treadmill_pause
         else:
           - action: button.press
+            continue_on_error: true
             target:
               entity_id: button.treadmill_start_resume
 
@@ -26,6 +28,7 @@ script:
     mode: single
     sequence:
       - action: button.press
+        continue_on_error: true
         target:
           entity_id: button.treadmill_stop
 
@@ -39,6 +42,7 @@ script:
         entity_id: sensor.treadmill_speed
         above: 0
       - action: number.set_value
+        continue_on_error: true
         target:
           entity_id: number.treadmill_speed
         data:
@@ -58,6 +62,7 @@ script:
         entity_id: sensor.treadmill_speed
         above: 0
       - action: number.set_value
+        continue_on_error: true
         target:
           entity_id: number.treadmill_speed
         data:
@@ -74,6 +79,7 @@ script:
     max: 4
     sequence:
       - action: number.set_value
+        continue_on_error: true
         target:
           entity_id: number.treadmill_inclination
         data:
@@ -90,6 +96,7 @@ script:
     max: 4
     sequence:
       - action: number.set_value
+        continue_on_error: true
         target:
           entity_id: number.treadmill_inclination
         data:
@@ -105,6 +112,7 @@ script:
     mode: single
     sequence:
       - action: button.press
+        continue_on_error: true
         target:
           entity_id: button.treadmill_start_resume
 
@@ -114,5 +122,6 @@ script:
     mode: single
     sequence:
       - action: button.press
+        continue_on_error: true
         target:
           entity_id: button.treadmill_pause

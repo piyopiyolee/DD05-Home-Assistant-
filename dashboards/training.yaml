@@ -1,4 +1,5 @@
 # Dashboard export (lovelace.training). Create a new dashboard, open the Raw configuration editor and paste this.
+# Updated 2026-11-16: added 測試課表 3 分 subview (/training/test-3).
 title: Training
 views:
 - title: 訓練課表
@@ -32,6 +33,16 @@ views:
       tap_action:
         action: navigate
         navigation_path: /training/interval-35
+      hold_action:
+        action: none
+    - type: button
+      name: 測試課表 3 分（2 輪短間歇 2.0–3.5 km/h 坡度 0–2%）
+      icon: mdi:flask-outline
+      show_state: false
+      icon_height: 64px
+      tap_action:
+        action: navigate
+        navigation_path: /training/test-3
       hold_action:
         action: none
 - title: 間歇訓練 35 分
@@ -102,16 +113,112 @@ views:
           action: none
     - type: markdown
       title: 📋 課表說明與時間軸（總長 35:00）
-      content: "### 課表設計\n- **暖身（3 分鐘）**：速度 `3.5 km/h`、坡度 `0%`。\n- **間歇循環（共 6 輪，第 1–5 輪每輪 5 分鐘、第 6 輪 7 分鐘）**：\n  - **高強度 3\
-        \ 分鐘**：前 1 分鐘由 `3.5 / 0%` 平順遞增至 `4.5 / 6%`（每 10 秒一步：速度依序 `3.7 → 3.8 → 4.0 → 4.2 → 4.3 → 4.5 km/h`、坡度依序 `1% → 2% →\
-        \ 3% → 4% → 5% → 6%`），後 2 分鐘維持 `4.5 km/h / 6%`。\n  - **緩和 2 分鐘**（第 6 輪延長為 **4 分鐘**收操）：速度 `3.5 km/h`、坡度 `0%`。\n- **完成**：35:00\
-        \ 到達時自動送出停止指令。\n\n| 時間區間 | 階段 | 輪數 | 長度 | 目標速度 (km/h) | 目標坡度 (%) |\n| :--- | :--- | :---: | :---: | :---: | :---:\
-        \ |\n| 00:00 – 03:00 | 暖身 | 0 / 6 | 3:00 | 3.5 | 0% |\n| 03:00 – 06:00 | 第 1 輪：高強度（前 1 分平順加速＋維持 2 分） | 1 / 6 | 3:00\
-        \ | 3.5 → 4.5 | 0% → 6% |\n| 06:00 – 08:00 | 第 1 輪：緩和 | 1 / 6 | 2:00 | 3.5 | 0% |\n| 08:00 – 11:00 | 第 2 輪：高強度（前 1\
-        \ 分平順加速＋維持 2 分） | 2 / 6 | 3:00 | 3.5 → 4.5 | 0% → 6% |\n| 11:00 – 13:00 | 第 2 輪：緩和 | 2 / 6 | 2:00 | 3.5 | 0% |\n|\
-        \ 13:00 – 16:00 | 第 3 輪：高強度（前 1 分平順加速＋維持 2 分） | 3 / 6 | 3:00 | 3.5 → 4.5 | 0% → 6% |\n| 16:00 – 18:00 | 第 3 輪：緩和 |\
-        \ 3 / 6 | 2:00 | 3.5 | 0% |\n| 18:00 – 21:00 | 第 4 輪：高強度（前 1 分平順加速＋維持 2 分） | 4 / 6 | 3:00 | 3.5 → 4.5 | 0% → 6% |\n\
-        | 21:00 – 23:00 | 第 4 輪：緩和 | 4 / 6 | 2:00 | 3.5 | 0% |\n| 23:00 – 26:00 | 第 5 輪：高強度（前 1 分平順加速＋維持 2 分） | 5 / 6 | 3:00\
-        \ | 3.5 → 4.5 | 0% → 6% |\n| 26:00 – 28:00 | 第 5 輪：緩和 | 5 / 6 | 2:00 | 3.5 | 0% |\n| 28:00 – 31:00 | 第 6 輪：高強度（前 1\
-        \ 分平順加速＋維持 2 分） | 6 / 6 | 3:00 | 3.5 → 4.5 | 0% → 6% |\n| 31:00 – 35:00 | 第 6 輪：緩和（延長收操） | 6 / 6 | 4:00 | 3.5 | 0%\
-        \ |"
+      content: |-
+        ### 課表設計
+        - **暖身（3 分鐘）**：速度 `3.5 km/h`、坡度 `0%`。
+        - **間歇循環（共 6 輪，第 1–5 輪每輪 5 分鐘、第 6 輪 7 分鐘）**：
+          - **高強度 3 分鐘**：前 1 分鐘由 `3.5 / 0%` 平順遞增至 `4.5 / 6%`（每 10 秒一步：速度依序 `3.7 → 3.8 → 4.0 → 4.2 → 4.3 → 4.5 km/h`、坡度依序 `1% → 2% → 3% → 4% → 5% → 6%`），後 2 分鐘維持 `4.5 km/h / 6%`。
+          - **緩和 2 分鐘**（第 6 輪延長為 **4 分鐘**收操）：速度 `3.5 km/h`、坡度 `0%`。
+        - **完成**：35:00 到達時自動送出停止指令。
+
+        | 時間區間 | 階段 | 輪數 | 長度 | 目標速度 (km/h) | 目標坡度 (%) |
+        | :--- | :--- | :---: | :---: | :---: | :---: |
+        | 00:00 – 03:00 | 暖身 | 0 / 6 | 3:00 | 3.5 | 0% |
+        | 03:00 – 06:00 | 第 1 輪：高強度（前 1 分平順加速＋維持 2 分） | 1 / 6 | 3:00 | 3.5 → 4.5 | 0% → 6% |
+        | 06:00 – 08:00 | 第 1 輪：緩和 | 1 / 6 | 2:00 | 3.5 | 0% |
+        | 08:00 – 11:00 | 第 2 輪：高強度（前 1 分平順加速＋維持 2 分） | 2 / 6 | 3:00 | 3.5 → 4.5 | 0% → 6% |
+        | 11:00 – 13:00 | 第 2 輪：緩和 | 2 / 6 | 2:00 | 3.5 | 0% |
+        | 13:00 – 16:00 | 第 3 輪：高強度（前 1 分平順加速＋維持 2 分） | 3 / 6 | 3:00 | 3.5 → 4.5 | 0% → 6% |
+        | 16:00 – 18:00 | 第 3 輪：緩和 | 3 / 6 | 2:00 | 3.5 | 0% |
+        | 18:00 – 21:00 | 第 4 輪：高強度（前 1 分平順加速＋維持 2 分） | 4 / 6 | 3:00 | 3.5 → 4.5 | 0% → 6% |
+        | 21:00 – 23:00 | 第 4 輪：緩和 | 4 / 6 | 2:00 | 3.5 | 0% |
+        | 23:00 – 26:00 | 第 5 輪：高強度（前 1 分平順加速＋維持 2 分） | 5 / 6 | 3:00 | 3.5 → 4.5 | 0% → 6% |
+        | 26:00 – 28:00 | 第 5 輪：緩和 | 5 / 6 | 2:00 | 3.5 | 0% |
+        | 28:00 – 31:00 | 第 6 輪：高強度（前 1 分平順加速＋維持 2 分） | 6 / 6 | 3:00 | 3.5 → 4.5 | 0% → 6% |
+        | 31:00 – 35:00 | 第 6 輪：緩和（延長收操） | 6 / 6 | 4:00 | 3.5 | 0% |
+- title: 測試課表 3 分
+  path: test-3
+  icon: mdi:flask-outline
+  subview: true
+  cards:
+  - type: vertical-stack
+    cards:
+    - type: glance
+      title: 即時訓練狀態
+      columns: 4
+      show_name: true
+      show_state: true
+      entities:
+      - entity: sensor.training_state_display
+        name: 執行狀態
+      - entity: input_text.training_phase
+        name: 目前階段
+      - entity: sensor.training_round_display
+        name: 目前輪數
+      - entity: sensor.training_remaining_mmss
+        name: 總剩餘時間
+      - entity: sensor.training_segment_remaining_mmss
+        name: 本段剩餘
+      - entity: sensor.treadmill_speed
+        name: 目前速度
+      - entity: sensor.treadmill_inclination
+        name: 目前坡度
+      - entity: sensor.training_elapsed_mmss
+        name: 已進行時間
+    - type: grid
+      columns: 3
+      square: false
+      cards:
+      - type: button
+        entity: script.training_test_3
+        name: 開始 / 繼續
+        icon: mdi:play
+        show_state: false
+        icon_height: 56px
+        tap_action:
+          action: perform-action
+          perform_action: script.training_test_3
+        hold_action:
+          action: none
+      - type: button
+        entity: script.training_pause
+        name: 暫停 / 繼續
+        icon: mdi:play-pause
+        show_state: false
+        icon_height: 56px
+        tap_action:
+          action: perform-action
+          perform_action: script.training_pause
+        hold_action:
+          action: none
+      - type: button
+        entity: script.training_end
+        name: 結束課表
+        icon: mdi:stop-circle
+        show_state: false
+        icon_height: 56px
+        tap_action:
+          action: perform-action
+          perform_action: script.training_end
+        hold_action:
+          action: none
+    - type: markdown
+      title: 📋 測試課表說明與時間軸（總長 03:00）
+      content: |-
+        ### 測試課表設計（安全低速，用來端到端驗證課表執行器）
+        - **涵蓋**：暖身 → 變速 → 變坡度（加速 ramp）→ 2 輪短間歇（高強度＋緩和）→ 收操 → 正常結束。
+        - **範圍**：速度 `2.0–3.5 km/h`、坡度 `0–2%`；每段 20–30 秒，ramp 每 10 秒一步。
+        - **變坡度**：`3.0 / 0%` → `3.4 / 2%`（20 秒 ramp：`3.2 / 1%` → `3.4 / 2%`）。
+        - **高強度 30 秒**：前 20 秒由 `2.5 / 0%` 每 10 秒一步升到 `3.5 / 2%`（`3.0 / 1%` → `3.5 / 2%`），後 10 秒維持。
+        - **完成**：03:00 到達時自動送出停止指令、等跑帶停止後回到待機。
+
+        | 時間區間 | 階段 | 輪數 | 長度 | 目標速度 (km/h) | 目標坡度 (%) |
+        | :--- | :--- | :---: | :---: | :---: | :---: |
+        | 00:00 – 00:20 | 暖身 | 0 / 2 | 00:20 | 2.0 | 0% |
+        | 00:20 – 00:40 | 變速 | 0 / 2 | 00:20 | 3.0 | 0% |
+        | 00:40 – 01:00 | 變坡度（加速 ramp） | 0 / 2 | 00:20 | 3.0 → 3.4 | 0% → 2% |
+        | 01:00 – 01:30 | 第 1 輪：高強度（加速＋維持） | 1 / 2 | 00:30 | 2.5 → 3.5 | 0% → 2% |
+        | 01:30 – 01:50 | 第 1 輪：緩和 | 1 / 2 | 00:20 | 2.5 | 0% |
+        | 01:50 – 02:20 | 第 2 輪：高強度（加速＋維持） | 2 / 2 | 00:30 | 2.5 → 3.5 | 0% → 2% |
+        | 02:20 – 02:40 | 第 2 輪：緩和 | 2 / 2 | 00:20 | 2.5 | 0% |
+        | 02:40 – 03:00 | 收操 | 2 / 2 | 00:20 | 2.0 | 0% |
