@@ -52,8 +52,9 @@ homeassistant/packages/        HA packages (scripts, helpers, automations)
 homeassistant/custom_sentences/zh-TW/   Assist sentences
 homeassistant/configuration-snippets/   intent_script, google_assistant, packages include
 dashboards/                    Lovelace dashboards (paste into Raw configuration editor)
+homeassistant/custom_components/ftms/  modified hassio-ftms files (not a complete integration)
 patches/                       hassio-ftms patch (Apache-2.0, see patches/README.md)
-docs/                          architecture notes, upstream notes
+docs/                          architecture notes, upstream notes, dated debug logs
 ```
 
 ## Installation
@@ -76,7 +77,8 @@ The author's proxies ran without API encryption or an OTA password; this example
    cd /config
    patch -p1 < patches/hassio-ftms-0.24.6-lenient-training-status.patch
    ```
-3. Restart Home Assistant. The DD05 should be discovered via Bluetooth (FTMS). Add it. All YAML here uses entity IDs `*.treadmill_*` (the default when the device is named "Treadmill"); if yours differ, rename the device or entities.
+3. Copy the three files in `homeassistant/custom_components/ftms/` (`__init__.py`, `sensor.py`, `updater_patch.py`) over the corresponding paths under `/config/custom_components/ftms/`. `updater_patch.py` is new and must sit next to `__init__.py`. See `patches/README.md` and `homeassistant/custom_components/ftms/README.md`.
+4. Restart Home Assistant. The DD05 should be discovered via Bluetooth (FTMS). Add it. All YAML here uses entity IDs `*.treadmill_*` (the default when the device is named "Treadmill"); if yours differ, rename the device or entities.
 
 **What the patch does:** the DD05 sends *Training Status* notifications with flag bits that are undefined in the FTMS spec (e.g. `0x46`). pyftms 0.4.10 raises on them and the integration setup aborts. The patch keeps only the two spec-defined flag bits and, if a status still cannot be parsed, logs a warning and skips it instead of crashing. See `patches/README.md`. The proper long-term fix belongs upstream (pyftms / hassio-ftms); see `docs/upstream-notes.md`.
 
@@ -135,6 +137,10 @@ Settings → Dashboards → Add dashboard (e.g. "Treadmill", icon `mdi:walk`, an
 - Speed/incline are never written while the belt is stopped, and values are clamped to 1.0–6.0 km/h and 0–15 %.
 - After a Home Assistant restart the runner resets to `idle`.
 - Keep children and pets away. Test new programs at low speed first.
+
+## Development log
+
+A dated log of the 2026-11-16 tests and fixes (timeouts, training runner, display dropouts), plus an **open bug** at segment-boundary speed changes, is in [docs/2026-11-16-dd05-debug-log.md](docs/2026-11-16-dd05-debug-log.md) (Traditional Chinese, times in Asia/Taipei).
 
 ## Disclaimer
 

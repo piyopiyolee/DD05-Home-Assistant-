@@ -25,3 +25,25 @@ non-conforming notification cannot break the whole integration.
 - Confirm the issue still exists on the latest hassio-ftms / pyftms release.
 - Attach a debug log (`logger: logs: pyftms: debug`) with raw notification hex.
 - Remove any personal data from logs (MAC addresses, IPs, hostnames).
+
+
+## Additional findings (2026-11-16)
+
+See [2026-11-16-dd05-debug-log.md](2026-11-16-dd05-debug-log.md) for the full local log.
+
+1. **Training Status first read is an ASCII firmware string, not a status code.**
+   Raw bytes: `02 53 2D 55 70 64 61 74 65 5F 31 2E 30` → `S-Update_1.0` (leading
+   `02` is flags). Comments on python-pyftms PR #60:
+   https://github.com/dudanov/python-pyftms/pull/60#issuecomment-6916844838
+   and correction
+   https://github.com/dudanov/python-pyftms/pull/60#issuecomment-6917868350
+
+2. **`DataUpdater._on_notify` (pyftms 0.4.10) raises `KeyError: 'step_count'`**
+   when a Treadmill Data packet omits a field present in the previous packet.
+   The DD05 / FitShow module alternates packets with different flags. The
+   exception drops the whole notification (including speed and incline) and
+   leaves `_result` dirty, so several subsequent packets also fail. Local
+   workaround: `homeassistant/custom_components/ftms/updater_patch.py`.
+   A clean fix belongs in pyftms: only iterate keys present in the current
+   packet, merge into `_prev`, and always clear `_result` on a complete packet
+   (including after exceptions).

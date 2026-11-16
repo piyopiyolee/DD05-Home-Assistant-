@@ -52,8 +52,9 @@ homeassistant/packages/        HA packages（腳本、輔助元件、自動化�
 homeassistant/custom_sentences/zh-TW/   Assist 語音句子
 homeassistant/configuration-snippets/   intent_script、google_assistant、packages 啟用片段
 dashboards/                    儀表板（貼到「原始設定編輯器」）
+homeassistant/custom_components/ftms/  已修改的 hassio-ftms 檔案（不是完整整合）
 patches/                       hassio-ftms 修正（Apache-2.0，見 patches/README.md）
-docs/                          架構與回饋上游的說明
+docs/                          架構、回饋上游說明，以及按日的測試修正紀錄
 ```
 
 ## 安裝步驟
@@ -76,7 +77,8 @@ docs/                          架構與回饋上游的說明
    cd /config
    patch -p1 < patches/hassio-ftms-0.24.6-lenient-training-status.patch
    ```
-3. 重新啟動 HA，DD05 會以藍牙（FTMS）被發現，加入即可。本專案所有 YAML 都使用 `*.treadmill_*` 實體 ID（裝置名稱為「Treadmill」時的預設值）；如果你的不同，請改裝置或實體名稱。
+3. 把 `homeassistant/custom_components/ftms/` 內三個檔案（`__init__.py`、`sensor.py`、`updater_patch.py`）複製到 `/config/custom_components/ftms/` 對應位置。`updater_patch.py` 是新檔，必須和 `__init__.py` 放在同一層。詳見 `patches/README.md` 與 `homeassistant/custom_components/ftms/README.md`。
+4. 重新啟動 HA，DD05 會以藍牙（FTMS）被發現，加入即可。本專案所有 YAML 都使用 `*.treadmill_*` 實體 ID（裝置名稱為「Treadmill」時的預設值）；如果你的不同，請改裝置或實體名稱。
 
 **這個修正做什麼：** DD05 送出的 *Training Status* 通知帶有 FTMS 規格未定義的旗標位元（例如 `0x46`），pyftms 0.4.10 遇到會拋出例外，整合建立就中斷。修正只保留規格定義的兩個旗標位元；若仍無法解析，就記一行警告並略過，不讓整合當掉。詳見 `patches/README.md`。長期應由上游（pyftms／hassio-ftms）修正，見 `docs/upstream-notes.md`。
 
@@ -135,6 +137,10 @@ docs/                          架構與回饋上游的說明
 - 跑帶靜止時絕不寫入速度坡度；數值限制在 1.0–6.0 km/h、0–15 %。
 - HA 重新啟動後執行器回到 `idle`。
 - 讓小孩和寵物遠離。新課表先用低速測試。
+
+## 開發紀錄
+
+2026-11-16 的測試與修正（控制逾時、課表執行器、速度顯示丟包）以及**尚未修好的段落交接速度問題**，見 [docs/2026-11-16-dd05-debug-log.md](docs/2026-11-16-dd05-debug-log.md)（時間為 Asia/Taipei）。
 
 ## 免責聲明
 
