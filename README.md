@@ -10,8 +10,8 @@ Control and monitor a **BGYM DD05** walking treadmill from Home Assistant over B
 
 - **Live data**: speed, incline, elapsed time, distance, energy, heart rate.
 - **Remote dashboard** (`dashboards/treadmill_remote.yaml`): start/pause, speed ±0.5 km/h, incline ±1 %, stop.
-- **Training runner** (`homeassistant/packages/dd05_training.yaml` + `dashboards/training.yaml`): a generic, timestamp-based segment runner plus a first program, *Interval 35 min*. New programs are added by writing a new definition script only.
-- **Voice**: Assist custom sentences in Traditional Chinese (開始走 / 暫停走 / 停止走 / 加速度 / 減速度 / 加坡度 / 減坡度, plus training start/pause/end), and the same scripts exposed to Google Assistant as scenes.
+- **Training runner** (`homeassistant/packages/dd05_training.yaml` + `dashboards/training.yaml`): a generic, timestamp-based segment runner (with differential writes and readback verification), plus *Interval 10 min* (with an SVG schedule chart) and a 13-slider *Custom* program. New programs are added by writing a new definition script only.
+- **Voice**: Assist custom sentences in Traditional Chinese (開始走 / 暫停走 / 停止走 / 加速度 / 減速度 / 加坡度 / 減坡度, plus starting *Interval 10 min*, pausing, resuming, and ending training), and the same scripts exposed to Google Assistant as scenes.
 
 ## Tested setup
 
@@ -49,6 +49,7 @@ Home Assistant ── hassio-ftms (custom integration, patched)
 ```
 esphome/                       ESP32-C3 BT proxy config + secrets example
 homeassistant/packages/        HA packages (scripts, helpers, automations)
+homeassistant/www/training/    Static assets (Interval 10 min SVG chart)
 homeassistant/custom_sentences/zh-TW/   Assist sentences
 homeassistant/configuration-snippets/   intent_script, google_assistant, packages include
 dashboards/                    Lovelace dashboards (paste into Raw configuration editor)
@@ -88,10 +89,12 @@ The author's proxies ran without API encryption or an OTA password; this example
 2. Copy `homeassistant/packages/*.yaml` to `/config/packages/`.
 3. In `dd05_training.yaml`, replace `notify.mobile_app_YOUR_PHONE` with your phone's notify service (or delete that step).
 4. Check configuration, then restart.
+5. *(First deploy)* `input_number.training_custom_*` helpers intentionally omit `initial:` so reloads and restarts preserve your slider settings; optionally call `input_number.set_value` once to populate recommended defaults (15 rounds, warm-up 60 s / 3.0 / 0 %, fast 60 s / 4.5 / 4 %, rest 45 s / 3.0 / 0 %, cool-down 60 s / 2.0 / 0 %; total `28:15`).
 
 ### 4. Dashboards
 
-Settings → Dashboards → Add dashboard (e.g. "Treadmill", icon `mdi:walk`, and "Training", icon `mdi:run`). Open each one → ⋮ → Edit → Raw configuration editor, and paste `dashboards/treadmill_remote.yaml` / `dashboards/training.yaml`. Only built-in cards are used.
+1. Copy `homeassistant/www/training/interval10_v2.svg` to `/config/www/training/interval10_v2.svg` (restart HA once if `/config/www/` did not previously exist so `/local/training/interval10_v2.svg` is served).
+2. Settings → Dashboards → Add dashboard (e.g. "Treadmill", icon `mdi:walk`, and "Training", icon `mdi:run`). Open each one → ⋮ → Edit → Raw configuration editor, and paste `dashboards/treadmill_remote.yaml` / `dashboards/training.yaml`. Only built-in cards are used (`picture` card renders the SVG chart).
 
 ### 5. Voice commands
 
@@ -110,11 +113,12 @@ Settings → Dashboards → Add dashboard (e.g. "Treadmill", icon `mdi:walk`, an
 ## Training runner
 
 - **Helpers**: `input_select.training_state` (`idle/starting/running/paused/resuming/finishing`, `initial: idle`), timestamps, current phase, round, last target.
-- **`script.training_run`**: generic runner that takes `program_name` and a list of `segments` (`{name, round, dur, s0, i0, s1?, i1?, ramp_dur?, step?}`), computes elapsed time from timestamps (no drift), and writes speed/incline only when the target changes **and** the belt is moving.
-- **`script.training_interval35_start`**: the *Interval 35 min* definition: 3 min warm-up 3.5 km/h / 0 %, then 6 rounds of 5 min (1 min smooth ramp to 4.5 km/h / 6 % in 10-second steps, hold until 3 min, 2 min recovery 3.5 / 0; the last recovery is 4 min). Total 35:00, then sends stop.
-- **`script.training_pause` / `script.training_end`**: pause ↔ resume toggle, and abort + stop.
-- **Watchdog automation**: while running, if speed < 0.1 km/h for 3 s (stop button, safety key pulled) or the sensor is unavailable for 10 s, the program is aborted and you get a notification.
-- To add a program: copy `training_interval35_start`, change `program_name` and `segments`, add a button + subview to the Training dashboard. The runner does not change.
+- **`script.training_run`**: generic runner that takes `program_name` and a list of `segments` (`{name, round, dur, s0, i0, s1?, i1?, ramp_dur?, step?}`), computes elapsed time from timestamps (no drift), uses differential writes with a 0.5 s speed-to-incline gap, and verifies treadmill readback after 1.5 s (up to 4 attempts) so DD05 firmware doesn't drop or overwrite segment transitions.
+- **`script.training_interval_10`**: the *Interval 10 min* program: 45 s warm-up (3.0 km/h / 0 %), 5 rounds × (60 s fast 4.5 km/h / 4 % + 45 s recovery 3.0 km/h / 0 %), 30 s cool-down (2.0 km/h / 0 %); total 600 s (10:00), visualized by `/local/training/interval10_v2.svg`.
+- **`script.training_custom`**: *Custom* program reading a snapshot of 13 `input_number.training_custom_*` sliders (rounds 5–30, per-phase duration 30–120 s, speed 2.0–6.0 km/h, incline 0–15 %; recommended defaults give 15 rounds / `28:15` via `sensor.training_custom_total_mmss`).
+- **`script.training_pause` / `script.training_end`**: pause ↔ resume toggle (re-applies target speed/incline on resume), and abort + stop.
+- **Watchdog automations**: while running, if speed < 0.1 km/h for 3 s (stop button, safety key pulled), the sensor is unavailable for 10 s, or `script.training_run` exits unexpectedly (`automation.training_run_died_guard`), the program is cleaned up/aborted and you get a notification.
+- To add a program: copy `training_interval_10`, change `program_name` and `segments`, and add a button + subview to the Training dashboard. The runner does not change.
 
 ## Troubleshooting
 
@@ -140,7 +144,8 @@ Settings → Dashboards → Add dashboard (e.g. "Treadmill", icon `mdi:walk`, an
 
 ## Development log
 
-A dated log of the 2026-11-16 tests and fixes (timeouts, training runner, display dropouts), plus an **open bug** at segment-boundary speed changes, is in [docs/2026-11-16-dd05-debug-log.md](docs/2026-11-16-dd05-debug-log.md) (Traditional Chinese, times in Asia/Taipei).
+- **2026-11-16**: Tests and fixes (timeouts, training runner, display dropouts), plus the segment-boundary speed overwrite bug discovered in initial live testing — see [docs/2026-11-16-dd05-debug-log.md](docs/2026-11-16-dd05-debug-log.md) (Traditional Chinese, times in Asia/Taipei).
+- **2026-11-17**: Root-cause evidence & fix for the segment-boundary bug (verified in live testing), *Interval 10 min* v2 + SVG chart, 13-slider *Custom* program, and voice switch from 35 min to *Interval 10 min* — see [docs/2026-11-17-dd05-training-update.md](docs/2026-11-17-dd05-training-update.md) (Traditional Chinese, times in Asia/Taipei).
 
 ## Disclaimer
 

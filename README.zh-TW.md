@@ -10,8 +10,8 @@
 
 - **即時數據**：速度、坡度、時間、距離、熱量、心率。
 - **遙控儀表板**（`dashboards/treadmill_remote.yaml`）：開始／暫停、速度 ±0.5 km/h、坡度 ±1 %、停止。
-- **訓練課表**（`homeassistant/packages/dd05_training.yaml` + `dashboards/training.yaml`）：以時間戳計時的通用分段執行器，內建第一個課表「間歇訓練 35 分」。新增課表只要多寫一支定義腳本。
-- **語音**：Assist 繁體中文句子（開始走／暫停走／停止走／加速度／減速度／加坡度／減坡度，以及訓練開始／暫停／結束），同一組腳本也可開放給 Google 助理（在 Google Home 裡是「場景」）。
+- **訓練課表**（`homeassistant/packages/dd05_training.yaml` + `dashboards/training.yaml`）：以時間戳計時的通用分段執行器（含差異寫入與讀回重送保護），內建「間歇 10 分」（含 SVG 課表圖）與「自訂課表」（13 個滑桿設定暖身／快走／緩和／收操與輪數）。新增固定課表只要多寫一支定義腳本。
+- **語音**：Assist 繁體中文句子（開始走／暫停走／停止走／加速度／減速度／加坡度／減坡度，以及間歇訓練開始／暫停／結束，預設啟動間歇 10 分），同一組腳本也可開放給 Google 助理（在 Google Home 裡是「場景」）。
 
 ## 測試環境
 
@@ -49,6 +49,7 @@ Home Assistant ── hassio-ftms（自訂整合，已套修正）
 ```
 esphome/                       ESP32-C3 藍牙 proxy 設定與 secrets 範例
 homeassistant/packages/        HA packages（腳本、輔助元件、自動化）
+homeassistant/www/training/    Training 儀表板課表圖（放到 /config/www/training/）
 homeassistant/custom_sentences/zh-TW/   Assist 語音句子
 homeassistant/configuration-snippets/   intent_script、google_assistant、packages 啟用片段
 dashboards/                    儀表板（貼到「原始設定編輯器」）
@@ -87,11 +88,12 @@ docs/                          架構、回饋上游說明，以及按日的測�
 1. 先啟用 packages（只需一次），內容見 `homeassistant/configuration-snippets/homeassistant_packages.yaml`。
 2. 把 `homeassistant/packages/*.yaml` 複製到 `/config/packages/`。
 3. 在 `dd05_training.yaml` 把 `notify.mobile_app_YOUR_PHONE` 換成你手機的通知服務（或刪掉那一步）。
-4. 檢查設定後重新啟動。
+4. 檢查設定後重新啟動。首次使用「自訂課表」前，可於開發者工具呼叫 `input_number.set_value` 為 `input_number.training_custom_*` 寫入建議預設值（`rounds: 15`、暖身 `60s 3.0/0`、快走 `60s 4.5/4`、緩和 `45s 3.0/0`、收操 `60s 2.0/0`）；這些實體刻意不設 `initial:`，重載與重啟後會保留你的調整。
 
 ### 4. 儀表板
 
-設定 → 儀表板 → 新增儀表板（例如「走步機」圖示 `mdi:walk`、「Training」圖示 `mdi:run`）。進入儀表板 → ⋮ → 編輯 → 原始設定編輯器，分別貼上 `dashboards/treadmill_remote.yaml` 和 `dashboards/training.yaml`。只用內建卡片。
+1. 將 `homeassistant/www/training/interval10_v2.svg` 複製到 `/config/www/training/interval10_v2.svg`（HA 以 `/local/training/interval10_v2.svg` 存取；若 `/config/www/` 為首次建立，需重啟 HA 才會掛載 `/local/`）。
+2. 設定 → 儀表板 → 新增儀表板（例如「走步機」圖示 `mdi:walk`、「Training」圖示 `mdi:run`）。進入儀表板 → ⋮ → 編輯 → 原始設定編輯器，分別貼上 `dashboards/treadmill_remote.yaml` 和 `dashboards/training.yaml`。只用內建卡片。
 
 ### 5. 語音指令
 
@@ -110,11 +112,12 @@ docs/                          架構、回饋上游說明，以及按日的測�
 ## 訓練課表執行器
 
 - **輔助元件**：`input_select.training_state`（`idle/starting/running/paused/resuming/finishing`，`initial: idle`）、時間戳、目前階段、輪數、上次寫入值。
-- **`script.training_run`**：通用執行器，接收 `program_name` 和 `segments` 清單（`{name, round, dur, s0, i0, s1?, i1?, ramp_dur?, step?}`），用時間戳計算經過時間（不會漂移），只在目標值改變**且**跑帶在轉時才寫入速度坡度。
-- **`script.training_interval35_start`**：「間歇訓練 35 分」：暖身 3 分 3.5 km/h／0 %；6 輪每輪 5 分（前 1 分鐘每 10 秒一步平順加到 4.5 km/h／6 %，維持到第 3 分，緩和 2 分 3.5／0；最後一輪緩和 4 分）。總長 35:00，結束送停止。
+- **`script.training_run`**：通用執行器，接收 `program_name` 和 `segments` 清單（`{name, round, dur, s0, i0, s1?, i1?, ramp_dur?, step?}`），用時間戳計算經過時間（不會漂移），只在跑帶轉動時寫入與目標或讀回有差異的速度／坡度；速度與坡度同時變更時中間間隔 0.5 秒，並於 1.5 秒後核對 `sensor` 讀回、不符僅針對該項補送（最多 4 次）。
+- **`script.training_interval_10`**：「間歇 10 分」：暖身 45 秒 `3.0 km/h / 0%`，5 輪 ×（快走 60 秒 `4.5 km/h / 4%` ＋ 緩和 45 秒 `3.0 km/h / 0%`），收操 30 秒 `2.0 km/h / 0%`。總長 10:00（600 秒），結束送停止；對應 `/training/interval-10` 課表圖頁面。
+- **`script.training_custom`**：讀取 13 個 `input_number.training_custom_*` 滑桿快照（輪數 5–30、時間 30–120s、速度 2.0–6.0 km/h、坡度 0–15%）組成課表並交由 `script.training_run` 執行，並以 `sensor.training_custom_total_mmss` 顯示預估總時長（建議預設 15 輪共 `28:15`）。
 - **`script.training_pause`／`script.training_end`**：暫停與繼續切換；中止並停止。
-- **安全守護自動化**：執行中若速度 < 0.1 km/h 持續 3 秒（按停止、拔安全鑰匙）或感測器 unavailable 持續 10 秒，立即中止課表並通知。
-- 新增課表：複製 `training_interval35_start`，改 `program_name` 和 `segments`，在 Training 儀表板加一顆按鈕和子視圖即可，執行器不用改。
+- **安全守護自動化**：執行中若速度 < 0.1 km/h 持續 3 秒（按停止、拔安全鑰匙）或感測器 unavailable 持續 10 秒，立即中止課表並通知；另含 `automation.training_run_died_guard` 防止執行器異常中止時跑帶未停。
+- 新增課表：複製 `training_interval_10`，改 `program_name` 和 `segments`，在 Training 儀表板加一顆按鈕和子視圖即可，執行器不用改。
 
 ## 疑難排解
 
@@ -140,7 +143,8 @@ docs/                          架構、回饋上游說明，以及按日的測�
 
 ## 開發紀錄
 
-2026-11-16 的測試與修正（控制逾時、課表執行器、速度顯示丟包）以及**尚未修好的段落交接速度問題**，見 [docs/2026-11-16-dd05-debug-log.md](docs/2026-11-16-dd05-debug-log.md)（時間為 Asia/Taipei）。
+- [docs/2026-11-17-dd05-training-update.md](docs/2026-11-17-dd05-training-update.md)：修正段落交接速度覆蓋 bug 並實測驗證、改版「間歇 10 分（第二版）」＋ SVG 課表圖、新增 13 個滑桿「自訂課表」、移除 3 分／35 分課表與更新語音設定（時間為 Asia/Taipei）。
+- [docs/2026-11-16-dd05-debug-log.md](docs/2026-11-16-dd05-debug-log.md)：控制逾時、課表執行器、`updater_patch.py` 顯示丟包修正，以及當時記錄的段落交接速度問題（已於 2026-11-17 修正）。
 
 ## 免責聲明
 
