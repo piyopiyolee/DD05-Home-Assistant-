@@ -37,7 +37,7 @@ google_assistant:
       name: 走步機減坡度
       aliases: [減坡度]
     # 訓練課表語音指令（Google Home 場景）
-    script.training_interval35_start:
+    script.training_interval_10:
       expose: true
       name: 間歇訓練開始
       aliases:
