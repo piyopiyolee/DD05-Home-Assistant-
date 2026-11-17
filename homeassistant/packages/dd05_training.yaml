@@ -1,4 +1,4 @@
-# Home Assistant Training 課表執行器與「間歇訓練 35 分」Package
+# Home Assistant Training 課表執行器與課表（間歇 10 分／自訂課表）Package
 # 部署位置：/config/packages/dd05_training.yaml（作者實機檔名為 training.yaml）
 # 需在 configuration.yaml 啟用：
 # homeassistant:
@@ -125,6 +125,113 @@ input_number:
     initial: 0
     unit_of_measurement: "%"
 
+  # 自訂課表設定（不設 initial 以便重載與重啟後保留使用者上次數值；首次部署由協調者以 input_number.set_value 設定建議預設值）
+  # 建議預設值：rounds=15、warmup=60s (3.0/0)、fast=60s (4.5/4)、rest=45s (3.0/0)、cooldown=60s (2.0/0)，總長 1695s (28:15)
+  training_custom_rounds:
+    name: "自訂輪數"
+    icon: mdi:counter
+    min: 5
+    max: 30
+    step: 1
+    mode: slider
+    unit_of_measurement: "輪"
+  training_custom_warmup_dur:
+    name: "自訂暖身時間"
+    icon: mdi:timer-outline
+    min: 30
+    max: 120
+    step: 15
+    mode: slider
+    unit_of_measurement: "s"
+  training_custom_warmup_speed:
+    name: "自訂暖身速度"
+    icon: mdi:speedometer
+    min: 2.0
+    max: 6.0
+    step: 0.1
+    mode: slider
+    unit_of_measurement: "km/h"
+  training_custom_warmup_incline:
+    name: "自訂暖身坡度"
+    icon: mdi:slope-uphill
+    min: 0
+    max: 15
+    step: 1
+    mode: slider
+    unit_of_measurement: "%"
+  training_custom_fast_dur:
+    name: "自訂快走時間"
+    icon: mdi:timer-outline
+    min: 30
+    max: 120
+    step: 15
+    mode: slider
+    unit_of_measurement: "s"
+  training_custom_fast_speed:
+    name: "自訂快走速度"
+    icon: mdi:speedometer
+    min: 2.0
+    max: 6.0
+    step: 0.1
+    mode: slider
+    unit_of_measurement: "km/h"
+  training_custom_fast_incline:
+    name: "自訂快走坡度"
+    icon: mdi:slope-uphill
+    min: 0
+    max: 15
+    step: 1
+    mode: slider
+    unit_of_measurement: "%"
+  training_custom_rest_dur:
+    name: "自訂緩和時間"
+    icon: mdi:timer-outline
+    min: 30
+    max: 120
+    step: 15
+    mode: slider
+    unit_of_measurement: "s"
+  training_custom_rest_speed:
+    name: "自訂緩和速度"
+    icon: mdi:speedometer
+    min: 2.0
+    max: 6.0
+    step: 0.1
+    mode: slider
+    unit_of_measurement: "km/h"
+  training_custom_rest_incline:
+    name: "自訂緩和坡度"
+    icon: mdi:slope-uphill
+    min: 0
+    max: 15
+    step: 1
+    mode: slider
+    unit_of_measurement: "%"
+  training_custom_cooldown_dur:
+    name: "自訂收操時間"
+    icon: mdi:timer-outline
+    min: 30
+    max: 120
+    step: 15
+    mode: slider
+    unit_of_measurement: "s"
+  training_custom_cooldown_speed:
+    name: "自訂收操速度"
+    icon: mdi:speedometer
+    min: 2.0
+    max: 6.0
+    step: 0.1
+    mode: slider
+    unit_of_measurement: "km/h"
+  training_custom_cooldown_incline:
+    name: "自訂收操坡度"
+    icon: mdi:slope-uphill
+    min: 0
+    max: 15
+    step: 1
+    mode: slider
+    unit_of_measurement: "%"
+
 # ==============================================================================
 # 2. Template Sensors (儀表板即時顯示 mm:ss 與中文化狀態)
 #    注意：name 使用英文 slug（確保 HA 自動產生對應的 sensor.training_* entity_id），
@@ -212,6 +319,20 @@ template:
             {{ '%02d:%02d' | format(elapsed // 60, elapsed % 60) }}
           {% endif %}
 
+      - name: "training_custom_total_mmss"
+        unique_id: training_custom_total_mmss
+        icon: mdi:timer-sand
+        attributes:
+          friendly_name: "自訂課表總時長"
+        state: >-
+          {% set w = [30, [120, states('input_number.training_custom_warmup_dur') | int(60)] | min] | max %}
+          {% set f = [30, [120, states('input_number.training_custom_fast_dur') | int(60)] | min] | max %}
+          {% set r = [30, [120, states('input_number.training_custom_rest_dur') | int(45)] | min] | max %}
+          {% set c = [30, [120, states('input_number.training_custom_cooldown_dur') | int(60)] | min] | max %}
+          {% set n = [5, [30, states('input_number.training_custom_rounds') | int(15)] | min] | max %}
+          {% set tot = w + n * (f + r) + c %}
+          {{ '%02d:%02d' | format(tot // 60, tot % 60) }}
+
 # ==============================================================================
 # 3. Scripts (通用執行器、控制腳本、課表定義)
 # ==============================================================================
@@ -254,13 +375,16 @@ script:
                     tag: training_status
 
   # ----------------------------------------------------------------------------
-  # 課表定義 1：間歇訓練 35 分（呼叫通用執行器 script.training_run）
-  # 新增課表時，只需複製此格式新增一個 script，不需修改執行器。
+  # 課表定義 1：間歇 10 分（呼叫通用執行器 script.training_run）
+  # 總長剛好 600 秒：
+  #   暖身 45 秒（3.0/0 固定，不 ramp）
+  #   ＋ 5 輪 ×（快走 60 秒 4.5/4 ＋ 緩和 45 秒 3.0/0）＝ 525 秒
+  #   ＋ 收操 30 秒（2.0/0）
   # ----------------------------------------------------------------------------
-  training_interval35_start:
-    alias: "間歇訓練 35 分（開始 / 繼續）"
-    description: "0-3分暖身(3.5/0)，6輪×5分（前1分平順加速至4.5/6、維持2分，緩和2分3.5/0；第6輪緩和延長為4分），共35分。"
-    icon: mdi:run-fast
+  training_interval_10:
+    alias: "間歇 10 分"
+    description: "0-45秒暖身(3.0/0)、5輪×(快走60秒 4.5/4＋緩和45秒 3.0/0)、收操30秒(2.0/0)，共10分鐘（600秒）。"
+    icon: mdi:run
     mode: single
     sequence:
       - choose:
@@ -282,109 +406,78 @@ script:
                   entity_id: script.training_run
                 data:
                   variables:
-                    program_name: "間歇訓練 35 分"
-                    rounds_total: 6
+                    program_name: "間歇 10 分"
+                    rounds_total: 5
                     segments:
                       - name: "暖身"
                         round: 0
-                        dur: 180
-                        s0: 3.5
+                        dur: 45
+                        s0: 3.0
                         i0: 0
-                      - name: "第 1 輪：高強度（加速＋維持）"
+                      - name: "第 1 輪：快走"
                         round: 1
-                        dur: 180
-                        s0: 3.5
-                        i0: 0
-                        s1: 4.5
-                        i1: 6
-                        ramp_dur: 60
-                        step: 10
+                        dur: 60
+                        s0: 4.5
+                        i0: 4
                       - name: "第 1 輪：緩和"
                         round: 1
-                        dur: 120
-                        s0: 3.5
+                        dur: 45
+                        s0: 3.0
                         i0: 0
-                      - name: "第 2 輪：高強度（加速＋維持）"
+                      - name: "第 2 輪：快走"
                         round: 2
-                        dur: 180
-                        s0: 3.5
-                        i0: 0
-                        s1: 4.5
-                        i1: 6
-                        ramp_dur: 60
-                        step: 10
+                        dur: 60
+                        s0: 4.5
+                        i0: 4
                       - name: "第 2 輪：緩和"
                         round: 2
-                        dur: 120
-                        s0: 3.5
+                        dur: 45
+                        s0: 3.0
                         i0: 0
-                      - name: "第 3 輪：高強度（加速＋維持）"
+                      - name: "第 3 輪：快走"
                         round: 3
-                        dur: 180
-                        s0: 3.5
-                        i0: 0
-                        s1: 4.5
-                        i1: 6
-                        ramp_dur: 60
-                        step: 10
+                        dur: 60
+                        s0: 4.5
+                        i0: 4
                       - name: "第 3 輪：緩和"
                         round: 3
-                        dur: 120
-                        s0: 3.5
+                        dur: 45
+                        s0: 3.0
                         i0: 0
-                      - name: "第 4 輪：高強度（加速＋維持）"
+                      - name: "第 4 輪：快走"
                         round: 4
-                        dur: 180
-                        s0: 3.5
-                        i0: 0
-                        s1: 4.5
-                        i1: 6
-                        ramp_dur: 60
-                        step: 10
+                        dur: 60
+                        s0: 4.5
+                        i0: 4
                       - name: "第 4 輪：緩和"
                         round: 4
-                        dur: 120
-                        s0: 3.5
+                        dur: 45
+                        s0: 3.0
                         i0: 0
-                      - name: "第 5 輪：高強度（加速＋維持）"
+                      - name: "第 5 輪：快走"
                         round: 5
-                        dur: 180
-                        s0: 3.5
-                        i0: 0
-                        s1: 4.5
-                        i1: 6
-                        ramp_dur: 60
-                        step: 10
+                        dur: 60
+                        s0: 4.5
+                        i0: 4
                       - name: "第 5 輪：緩和"
                         round: 5
-                        dur: 120
-                        s0: 3.5
+                        dur: 45
+                        s0: 3.0
                         i0: 0
-                      - name: "第 6 輪：高強度（加速＋維持）"
-                        round: 6
-                        dur: 180
-                        s0: 3.5
-                        i0: 0
-                        s1: 4.5
-                        i1: 6
-                        ramp_dur: 60
-                        step: 10
-                      - name: "第 6 輪：緩和（延長收操）"
-                        round: 6
-                        dur: 240
-                        s0: 3.5
+                      - name: "收操"
+                        round: 5
+                        dur: 30
+                        s0: 2.0
                         i0: 0
 
   # ----------------------------------------------------------------------------
-  # 課表定義 2：測試課表 3 分（與間歇訓練 35 分完全相同的寫法，只是 segments 不同；
-  # 執行器不對它做任何特殊處理）。速度 2.0–3.5 km/h、坡度 0–2%，供安全地端到端驗證：
-  #   暖身 → 變速 → 變坡度（ramp）→ 2 輪短間歇（高強度 ramp＋緩和）→ 收操 → 正常結束
-  # 總長 20+20+20+(30+20)+(30+20)+20 = 180 秒。
+  # 課表定義 2：自訂課表（讀取 input_number.training_custom_* 快照並呼叫 script.training_run）
+  # 執行器不給特殊待遇；執行中更改 input_number 不影響本次訓練。
   # ----------------------------------------------------------------------------
-  training_test_3:
-    alias: "測試課表 3 分"
-    description: "0-20秒暖身(2.0/0)、20-40秒變速(3.0/0)、40-60秒變坡度(3.0/0→3.4/2)、2輪短間歇（高強度30秒 2.5/0→3.5/2＋緩和20秒 2.5/0）、收操20秒(2.0/0)，共3分鐘。"
-    icon: mdi:flask-outline
+  training_custom:
+    alias: "自訂課表"
+    description: "依目前自訂暖身／快走／緩和／收操與輪數設定快照組成課表，交由通用執行器執行；暫停時按開始視同繼續。"
+    icon: mdi:tune
     mode: single
     sequence:
       - choose:
@@ -401,66 +494,39 @@ script:
                 entity_id: input_select.training_state
                 state: idle
             sequence:
+              - variables:
+                  n_rounds: "{{ [5, [30, states('input_number.training_custom_rounds') | int(15)] | min] | max }}"
+                  w_dur: "{{ [30, [120, states('input_number.training_custom_warmup_dur') | int(60)] | min] | max }}"
+                  w_s: "{{ ([6.0, [2.0, states('input_number.training_custom_warmup_speed') | float(3.0)] | max] | min) | round(1) }}"
+                  w_i: "{{ ([15, [0, (states('input_number.training_custom_warmup_incline') | float(0)) | round(0)] | max] | min) | int }}"
+                  f_dur: "{{ [30, [120, states('input_number.training_custom_fast_dur') | int(60)] | min] | max }}"
+                  f_s: "{{ ([6.0, [2.0, states('input_number.training_custom_fast_speed') | float(4.5)] | max] | min) | round(1) }}"
+                  f_i: "{{ ([15, [0, (states('input_number.training_custom_fast_incline') | float(4)) | round(0)] | max] | min) | int }}"
+                  r_dur: "{{ [30, [120, states('input_number.training_custom_rest_dur') | int(45)] | min] | max }}"
+                  r_s: "{{ ([6.0, [2.0, states('input_number.training_custom_rest_speed') | float(3.0)] | max] | min) | round(1) }}"
+                  r_i: "{{ ([15, [0, (states('input_number.training_custom_rest_incline') | float(0)) | round(0)] | max] | min) | int }}"
+                  c_dur: "{{ [30, [120, states('input_number.training_custom_cooldown_dur') | int(60)] | min] | max }}"
+                  c_s: "{{ ([6.0, [2.0, states('input_number.training_custom_cooldown_speed') | float(2.0)] | max] | min) | round(1) }}"
+                  c_i: "{{ ([15, [0, (states('input_number.training_custom_cooldown_incline') | float(0)) | round(0)] | max] | min) | int }}"
+                  custom_segments_raw: >-
+                    {% set ns = namespace(segs=[{'name': '暖身', 'round': 0, 'dur': w_dur | int, 's0': w_s | float, 'i0': w_i | int}]) %}
+                    {% for k in range(1, (n_rounds | int) + 1) %}
+                      {% set ns.segs = ns.segs + [
+                        {'name': '第 ' ~ k ~ ' 輪：快走', 'round': k, 'dur': f_dur | int, 's0': f_s | float, 'i0': f_i | int},
+                        {'name': '第 ' ~ k ~ ' 輪：緩和', 'round': k, 'dur': r_dur | int, 's0': r_s | float, 'i0': r_i | int}
+                      ] %}
+                    {% endfor %}
+                    {% set ns.segs = ns.segs + [{'name': '收操', 'round': n_rounds | int, 'dur': c_dur | int, 's0': c_s | float, 'i0': c_i | int}] %}
+                    {{ ns.segs | to_json }}
+                  custom_segments: "{{ custom_segments_raw if (custom_segments_raw is sequence and custom_segments_raw is not string) else (custom_segments_raw | from_json) }}"
               - action: script.turn_on
                 target:
                   entity_id: script.training_run
                 data:
                   variables:
-                    program_name: "測試課表 3 分"
-                    rounds_total: 2
-                    segments:
-                      - name: "暖身"
-                        round: 0
-                        dur: 20
-                        s0: 2.0
-                        i0: 0
-                      - name: "變速"
-                        round: 0
-                        dur: 20
-                        s0: 3.0
-                        i0: 0
-                      - name: "變坡度（加速 ramp）"
-                        round: 0
-                        dur: 20
-                        s0: 3.0
-                        i0: 0
-                        s1: 3.4
-                        i1: 2
-                        ramp_dur: 20
-                        step: 10
-                      - name: "第 1 輪：高強度（加速＋維持）"
-                        round: 1
-                        dur: 30
-                        s0: 2.5
-                        i0: 0
-                        s1: 3.5
-                        i1: 2
-                        ramp_dur: 20
-                        step: 10
-                      - name: "第 1 輪：緩和"
-                        round: 1
-                        dur: 20
-                        s0: 2.5
-                        i0: 0
-                      - name: "第 2 輪：高強度（加速＋維持）"
-                        round: 2
-                        dur: 30
-                        s0: 2.5
-                        i0: 0
-                        s1: 3.5
-                        i1: 2
-                        ramp_dur: 20
-                        step: 10
-                      - name: "第 2 輪：緩和"
-                        round: 2
-                        dur: 20
-                        s0: 2.5
-                        i0: 0
-                      - name: "收操"
-                        round: 2
-                        dur: 20
-                        s0: 2.0
-                        i0: 0
+                    program_name: "自訂課表"
+                    rounds_total: "{{ n_rounds | int }}"
+                    segments: "{{ custom_segments }}"
 
   # ----------------------------------------------------------------------------
   # 通用課表執行器 script.training_run
@@ -473,10 +539,10 @@ script:
     fields:
       program_name:
         description: "課表名稱"
-        example: "間歇訓練 35 分"
+        example: "間歇 10 分"
       rounds_total:
         description: "總輪數"
-        example: 6
+        example: 5
       segments:
         description: "段落清單 [{name, round, dur, s0, i0, s1?, i1?, ramp_dur?, step?}]"
     variables:
@@ -612,8 +678,20 @@ script:
           - stop: "Treadmill start timeout"
 
       # 4. 跑帶開始轉動：紀錄開始時間戳、進入 running、寫入首段速度與坡度並通知
+      #    僅寫入與機器當前讀回不符之項目；若同時需改速度與坡度，中間間隔 500ms 避免 DD05 韌體競態覆蓋
       - variables:
           start_epoch: "{{ now().timestamp() | int }}"
+          init_plan: >-
+            {% set s_raw = states('sensor.treadmill_speed') %}
+            {% set i_raw = states('sensor.treadmill_inclination') %}
+            {% set s_ok = s_raw not in ['unavailable', 'unknown', 'none', ''] %}
+            {% set i_ok = i_raw not in ['unavailable', 'unknown', 'none', ''] %}
+            {% set cur_s = s_raw | float(-1) %}
+            {% set cur_i = (i_raw | float(-1) | round(0)) | int(-1) %}
+            {% set need_s = (not s_ok) or ((cur_s - (init_s | float)) | abs > 0.05) %}
+            {% set need_i = (not i_ok) or (cur_i != (init_i | int)) %}
+            {{ {'need_s': need_s, 'need_i': need_i} | to_json }}
+          init_parsed: "{{ init_plan if init_plan is mapping else (init_plan | from_json) }}"
       - action: input_number.set_value
         target:
           entity_id: input_number.training_start_ts
@@ -629,28 +707,50 @@ script:
           entity_id: input_text.training_phase
         data:
           value: "{{ first_seg.name }}"
-      - action: input_text.set_value
-        target:
-          entity_id: input_text.training_last_target
-        data:
-          value: "{{ init_s }}/{{ init_i }}"
       - if:
           - condition: numeric_state
             entity_id: sensor.treadmill_speed
             above: 0
         then:
-          - action: number.set_value
-            continue_on_error: true
+          - if:
+              - condition: template
+                value_template: "{{ init_parsed.need_s }}"
+            then:
+              - action: number.set_value
+                continue_on_error: true
+                target:
+                  entity_id: number.treadmill_speed
+                data:
+                  value: "{{ init_s }}"
+          - if:
+              - condition: template
+                value_template: "{{ init_parsed.need_s and init_parsed.need_i }}"
+            then:
+              - delay:
+                  milliseconds: 500
+          - if:
+              - condition: template
+                value_template: >-
+                  {{ init_parsed.need_i
+                     and states('input_select.training_state') == 'running'
+                     and (states('sensor.treadmill_speed') | float(0)) > 0 }}
+            then:
+              - action: number.set_value
+                continue_on_error: true
+                target:
+                  entity_id: number.treadmill_inclination
+                data:
+                  value: "{{ init_i }}"
+      - if:
+          - condition: state
+            entity_id: input_select.training_state
+            state: running
+        then:
+          - action: input_text.set_value
             target:
-              entity_id: number.treadmill_speed
+              entity_id: input_text.training_last_target
             data:
-              value: "{{ init_s }}"
-          - action: number.set_value
-            continue_on_error: true
-            target:
-              entity_id: number.treadmill_inclination
-            data:
-              value: "{{ init_i }}"
+              value: "{{ init_s }}/{{ init_i }}|1|{{ now().timestamp() | round(2) }}"
       - action: script.turn_on
         continue_on_error: true
         target:
@@ -679,7 +779,8 @@ script:
                       state: running
                   sequence:
                     - variables:
-                        now_ts: "{{ now().timestamp() | int }}"
+                        now_ts_f: "{{ now().timestamp() | float }}"
+                        now_ts: "{{ now_ts_f | int }}"
                         start_ts: "{{ states('input_number.training_start_ts') | int(0) }}"
                         paused_tot: "{{ states('input_number.training_paused_total') | int(0) }}"
                         raw_elapsed: "{{ [0, now_ts - start_ts - paused_tot] | max }}"
@@ -726,8 +827,47 @@ script:
                           {{ {'name': ns.name, 'round': ns.round, 'seg_end': ns.seg_end, 'seg_dur': ns.seg_dur, 's': ns.s, 'i': ns.i} | to_json }}
                         parsed: "{{ seg_calc if seg_calc is mapping else (seg_calc | from_json) }}"
                         prev_phase: "{{ states('input_text.training_phase') }}"
-                        prev_target: "{{ states('input_text.training_last_target') }}"
+                        prev_raw: "{{ states('input_text.training_last_target') }}"
                         new_target: "{{ parsed.s }}/{{ parsed.i }}"
+                        # 寫入規劃與閉迴路讀回驗證（prev_raw 格式：<s/i>|<attempts>|<last_write_ts>）：
+                        # 1. 換目標時只寫有差異的速度/坡度；兩者皆需寫入時中間間隔 500ms 避免 DD05 韌體互蓋。
+                        # 2. 寫入後於後續每秒迴圈檢查（距離上次寫入 >= 1.5s）sensor 實際讀回是否符合，
+                        #    若機器忽略或 ~1s 後跳回舊值，僅針對不符項目重送，最多 4 次（含初次），不阻塞主計時。
+                        write_plan: >-
+                          {% set parts = (prev_raw | string).split('|') %}
+                          {% set prev_t = parts[0] if (parts | length) > 0 else '' %}
+                          {% set prev_attempts = (parts[1] | int(0)) if (parts | length) > 1 else 0 %}
+                          {% set prev_ts = (parts[2] | float(0)) if (parts | length) > 2 else 0.0 %}
+                          {% set prev_ti = prev_t.split('/') %}
+                          {% set prev_s = (prev_ti[0] | float(-999)) if (prev_ti | length) == 2 else -999.0 %}
+                          {% set prev_i = (prev_ti[1] | int(-999)) if (prev_ti | length) == 2 else -999 %}
+                          {% set tgt_s = parsed.s | float %}
+                          {% set tgt_i = parsed.i | int %}
+                          {% set s_raw = states('sensor.treadmill_speed') %}
+                          {% set i_raw = states('sensor.treadmill_inclination') %}
+                          {% set s_ok = s_raw not in ['unavailable', 'unknown', 'none', ''] %}
+                          {% set i_ok = i_raw not in ['unavailable', 'unknown', 'none', ''] %}
+                          {% set cur_s = s_raw | float(-1) %}
+                          {% set cur_i = (i_raw | float(-1) | round(0)) | int(-1) %}
+                          {% set s_diff = (not s_ok) or ((cur_s - tgt_s) | abs > 0.05) %}
+                          {% set i_diff = (not i_ok) or (cur_i != tgt_i) %}
+                          {% set target_changed = (new_target != prev_t) %}
+                          {% set max_attempts = 4 %}
+                          {% set settle_sec = 1.5 %}
+                          {% if target_changed %}
+                            {% set need_s = ((prev_s - tgt_s) | abs > 0.05) or s_diff %}
+                            {% set need_i = (prev_i != tgt_i) or i_diff %}
+                            {% set should_write = need_s or need_i %}
+                            {% set next_attempts = 1 %}
+                          {% else %}
+                            {% set retry_due = (prev_attempts < max_attempts) and (((now_ts_f | float) - prev_ts) >= settle_sec) %}
+                            {% set need_s = retry_due and s_diff %}
+                            {% set need_i = retry_due and i_ok and (cur_i != tgt_i) %}
+                            {% set should_write = need_s or need_i %}
+                            {% set next_attempts = prev_attempts + 1 %}
+                          {% endif %}
+                          {{ {'should_write': should_write, 'need_s': need_s, 'need_i': need_i, 'next_attempts': next_attempts, 'target_changed': target_changed} | to_json }}
+                        wp: "{{ write_plan if write_plan is mapping else (write_plan | from_json) }}"
 
                     # 更新計時與畫面 helpers
                     - action: input_number.set_value
@@ -776,34 +916,56 @@ script:
                               message: >-
                                 進入【{{ parsed.name }}】（{{ (parsed.seg_dur | int) // 60 }}:{{ '%02d' | format((parsed.seg_dur | int) % 60) }}）｜目標速度 {{ parsed.s }} km/h、坡度 {{ parsed.i }}%
 
-                    # 若目標速度或坡度改變（且尚未到達終點），安全檢查 speed > 0 後寫入走步機
+                    # 若目標改變，或讀回與目標不符（超過穩定等待時間且未達重送上限），安全檢查 speed > 0 後僅寫入差異項目
                     - if:
                         - condition: template
                           value_template: >-
                             {{ cur_elapsed < (total_dur | int)
-                               and new_target != prev_target
+                               and (wp.should_write or wp.target_changed)
                                and states('input_select.training_state') == 'running'
                                and (states('sensor.treadmill_speed') | float(0)) > 0 }}
                       then:
-                        - action: input_text.set_value
-                          target:
-                            entity_id: input_text.training_last_target
-                          data:
-                            value: "{{ new_target }}"
-                        - action: number.set_value
-                          continue_on_error: true
-                          target:
-                            entity_id: number.treadmill_speed
-                          data:
-                            value: "{{ parsed.s }}"
-                        - action: number.set_value
-                          continue_on_error: true
-                          target:
-                            entity_id: number.treadmill_inclination
-                          data:
-                            value: "{{ parsed.i }}"
+                        - if:
+                            - condition: template
+                              value_template: "{{ wp.need_s }}"
+                          then:
+                            - action: number.set_value
+                              continue_on_error: true
+                              target:
+                                entity_id: number.treadmill_speed
+                              data:
+                                value: "{{ parsed.s }}"
+                        - if:
+                            - condition: template
+                              value_template: "{{ wp.need_s and wp.need_i }}"
+                          then:
+                            - delay:
+                                milliseconds: 500
+                        - if:
+                            - condition: template
+                              value_template: >-
+                                {{ wp.need_i
+                                   and states('input_select.training_state') == 'running'
+                                   and (states('sensor.treadmill_speed') | float(0)) > 0 }}
+                          then:
+                            - action: number.set_value
+                              continue_on_error: true
+                              target:
+                                entity_id: number.treadmill_inclination
+                              data:
+                                value: "{{ parsed.i }}"
+                        - if:
+                            - condition: state
+                              entity_id: input_select.training_state
+                              state: running
+                          then:
+                            - action: input_text.set_value
+                              target:
+                                entity_id: input_text.training_last_target
+                              data:
+                                value: "{{ new_target }}|{{ wp.next_attempts }}|{{ now().timestamp() | round(2) }}"
 
-      # 6. 課表正常跑完總時長：送出停止指令、等待跑帶停止、回到 idle、發送完成通知
+      # 6. 課表正常跑完總時長：送出停止指令、等待跑帶停止、發送完成通知、最後回到 idle
       - if:
           - condition: template
             value_template: >-
@@ -821,11 +983,6 @@ script:
               entity_id: button.treadmill_stop
           - wait_template: "{{ states('sensor.treadmill_speed') | float(0) <= 0 }}"
             timeout: "00:00:15"
-          - action: input_select.select_option
-            target:
-              entity_id: input_select.training_state
-            data:
-              option: idle
           - action: input_text.set_value
             target:
               entity_id: input_text.training_phase
@@ -844,6 +1001,11 @@ script:
               variables:
                 title: "🎉 訓練完成！"
                 message: "{{ prog_name }}（共 {{ (total_dur | int) // 60 }} 分鐘）已完成，走步機已停止。"
+          - action: input_select.select_option
+            target:
+              entity_id: input_select.training_state
+            data:
+              option: idle
 
   # ----------------------------------------------------------------------------
   # 暫停 / 繼續 切換腳本 script.training_pause
@@ -952,6 +1114,17 @@ script:
                   new_paused_total: "{{ prev_paused + add_paused }}"
                   cur_s: "{{ ([6.0, [1.0, states('input_number.training_target_speed') | float(3.5)] | max] | min) | round(1) }}"
                   cur_i: "{{ ([15, [0, (states('input_number.training_target_incline') | float(0)) | round(0)] | max] | min) | int }}"
+                  resume_plan: >-
+                    {% set s_raw = states('sensor.treadmill_speed') %}
+                    {% set i_raw = states('sensor.treadmill_inclination') %}
+                    {% set s_ok = s_raw not in ['unavailable', 'unknown', 'none', ''] %}
+                    {% set i_ok = i_raw not in ['unavailable', 'unknown', 'none', ''] %}
+                    {% set s_now = s_raw | float(-1) %}
+                    {% set i_now = (i_raw | float(-1) | round(0)) | int(-1) %}
+                    {% set need_s = (not s_ok) or ((s_now - (cur_s | float)) | abs > 0.05) %}
+                    {% set need_i = (not i_ok) or (i_now != (cur_i | int)) %}
+                    {{ {'need_s': need_s, 'need_i': need_i} | to_json }}
+                  rp: "{{ resume_plan if resume_plan is mapping else (resume_plan | from_json) }}"
               - action: input_number.set_value
                 target:
                   entity_id: input_number.training_paused_total
@@ -962,29 +1135,46 @@ script:
                   entity_id: input_number.training_pause_ts
                 data:
                   value: 0
-              # 清空 last_target 並重新寫入目前目標速度與坡度（安全檢查 speed > 0）
-              - action: input_text.set_value
-                target:
-                  entity_id: input_text.training_last_target
-                data:
-                  value: "{{ cur_s }}/{{ cur_i }}"
+              # 重新寫入目前目標速度與坡度（僅寫入差異項目；兩者皆改時中間間隔 500ms），並更新 last_target 供主迴圈接續驗證
               - if:
                   - condition: numeric_state
                     entity_id: sensor.treadmill_speed
                     above: 0
                 then:
-                  - action: number.set_value
-                    continue_on_error: true
-                    target:
-                      entity_id: number.treadmill_speed
-                    data:
-                      value: "{{ cur_s }}"
-                  - action: number.set_value
-                    continue_on_error: true
-                    target:
-                      entity_id: number.treadmill_inclination
-                    data:
-                      value: "{{ cur_i }}"
+                  - if:
+                      - condition: template
+                        value_template: "{{ rp.need_s }}"
+                    then:
+                      - action: number.set_value
+                        continue_on_error: true
+                        target:
+                          entity_id: number.treadmill_speed
+                        data:
+                          value: "{{ cur_s }}"
+                  - if:
+                      - condition: template
+                        value_template: "{{ rp.need_s and rp.need_i }}"
+                    then:
+                      - delay:
+                          milliseconds: 500
+                  - if:
+                      - condition: template
+                        value_template: >-
+                          {{ rp.need_i
+                             and states('input_select.training_state') == 'resuming'
+                             and (states('sensor.treadmill_speed') | float(0)) > 0 }}
+                    then:
+                      - action: number.set_value
+                        continue_on_error: true
+                        target:
+                          entity_id: number.treadmill_inclination
+                        data:
+                          value: "{{ cur_i }}"
+              - action: input_text.set_value
+                target:
+                  entity_id: input_text.training_last_target
+                data:
+                  value: "{{ cur_s }}/{{ cur_i }}|1|{{ now().timestamp() | round(2) }}"
               - action: input_select.select_option
                 target:
                   entity_id: input_select.training_state
