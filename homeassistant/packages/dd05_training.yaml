@@ -126,7 +126,7 @@ input_number:
     unit_of_measurement: "%"
 
   # 自訂課表設定（不設 initial 以便重載與重啟後保留使用者上次數值；首次部署由協調者以 input_number.set_value 設定建議預設值）
-  # 建議預設值：rounds=15、warmup=60s (3.0/0)、fast=60s (4.5/4)、rest=45s (3.0/0)、cooldown=60s (2.0/0)，總長 1695s (28:15)
+  # 建議預設值：rounds=14、warmup=90s (3.0/0)、fast=120s (4.5/5)、rest=60s (3.0/0)、cooldown=90s (3.0/0)，總長 2700s (45:00)
   training_custom_rounds:
     name: "自訂輪數"
     icon: mdi:counter
@@ -325,11 +325,11 @@ template:
         attributes:
           friendly_name: "自訂課表總時長"
         state: >-
-          {% set w = [30, [120, states('input_number.training_custom_warmup_dur') | int(60)] | min] | max %}
-          {% set f = [30, [120, states('input_number.training_custom_fast_dur') | int(60)] | min] | max %}
-          {% set r = [30, [120, states('input_number.training_custom_rest_dur') | int(45)] | min] | max %}
-          {% set c = [30, [120, states('input_number.training_custom_cooldown_dur') | int(60)] | min] | max %}
-          {% set n = [5, [30, states('input_number.training_custom_rounds') | int(15)] | min] | max %}
+          {% set w = [30, [120, states('input_number.training_custom_warmup_dur') | int(90)] | min] | max %}
+          {% set f = [30, [120, states('input_number.training_custom_fast_dur') | int(120)] | min] | max %}
+          {% set r = [30, [120, states('input_number.training_custom_rest_dur') | int(60)] | min] | max %}
+          {% set c = [30, [120, states('input_number.training_custom_cooldown_dur') | int(90)] | min] | max %}
+          {% set n = [5, [30, states('input_number.training_custom_rounds') | int(14)] | min] | max %}
           {% set tot = w + n * (f + r) + c %}
           {{ '%02d:%02d' | format(tot // 60, tot % 60) }}
 
@@ -495,18 +495,18 @@ script:
                 state: idle
             sequence:
               - variables:
-                  n_rounds: "{{ [5, [30, states('input_number.training_custom_rounds') | int(15)] | min] | max }}"
-                  w_dur: "{{ [30, [120, states('input_number.training_custom_warmup_dur') | int(60)] | min] | max }}"
+                  n_rounds: "{{ [5, [30, states('input_number.training_custom_rounds') | int(14)] | min] | max }}"
+                  w_dur: "{{ [30, [120, states('input_number.training_custom_warmup_dur') | int(90)] | min] | max }}"
                   w_s: "{{ ([6.0, [2.0, states('input_number.training_custom_warmup_speed') | float(3.0)] | max] | min) | round(1) }}"
                   w_i: "{{ ([15, [0, (states('input_number.training_custom_warmup_incline') | float(0)) | round(0)] | max] | min) | int }}"
-                  f_dur: "{{ [30, [120, states('input_number.training_custom_fast_dur') | int(60)] | min] | max }}"
+                  f_dur: "{{ [30, [120, states('input_number.training_custom_fast_dur') | int(120)] | min] | max }}"
                   f_s: "{{ ([6.0, [2.0, states('input_number.training_custom_fast_speed') | float(4.5)] | max] | min) | round(1) }}"
-                  f_i: "{{ ([15, [0, (states('input_number.training_custom_fast_incline') | float(4)) | round(0)] | max] | min) | int }}"
-                  r_dur: "{{ [30, [120, states('input_number.training_custom_rest_dur') | int(45)] | min] | max }}"
+                  f_i: "{{ ([15, [0, (states('input_number.training_custom_fast_incline') | float(5)) | round(0)] | max] | min) | int }}"
+                  r_dur: "{{ [30, [120, states('input_number.training_custom_rest_dur') | int(60)] | min] | max }}"
                   r_s: "{{ ([6.0, [2.0, states('input_number.training_custom_rest_speed') | float(3.0)] | max] | min) | round(1) }}"
                   r_i: "{{ ([15, [0, (states('input_number.training_custom_rest_incline') | float(0)) | round(0)] | max] | min) | int }}"
-                  c_dur: "{{ [30, [120, states('input_number.training_custom_cooldown_dur') | int(60)] | min] | max }}"
-                  c_s: "{{ ([6.0, [2.0, states('input_number.training_custom_cooldown_speed') | float(2.0)] | max] | min) | round(1) }}"
+                  c_dur: "{{ [30, [120, states('input_number.training_custom_cooldown_dur') | int(90)] | min] | max }}"
+                  c_s: "{{ ([6.0, [2.0, states('input_number.training_custom_cooldown_speed') | float(3.0)] | max] | min) | round(1) }}"
                   c_i: "{{ ([15, [0, (states('input_number.training_custom_cooldown_incline') | float(0)) | round(0)] | max] | min) | int }}"
                   custom_segments_raw: >-
                     {% set ns = namespace(segs=[{'name': '暖身', 'round': 0, 'dur': w_dur | int, 's0': w_s | float, 'i0': w_i | int}]) %}
