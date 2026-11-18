@@ -89,7 +89,7 @@ The author's proxies ran without API encryption or an OTA password; this example
 2. Copy `homeassistant/packages/*.yaml` to `/config/packages/`.
 3. In `dd05_training.yaml`, replace `notify.mobile_app_YOUR_PHONE` with your phone's notify service (or delete that step).
 4. Check configuration, then restart.
-5. *(First deploy)* `input_number.training_custom_*` helpers intentionally omit `initial:` so reloads and restarts preserve your slider settings; optionally call `input_number.set_value` once to populate recommended defaults (15 rounds, warm-up 60 s / 3.0 / 0 %, fast 60 s / 4.5 / 4 %, rest 45 s / 3.0 / 0 %, cool-down 60 s / 2.0 / 0 %; total `28:15`).
+5. *(First deploy)* `input_number.training_custom_*` helpers intentionally omit `initial:` so reloads and restarts preserve your slider settings; optionally call `input_number.set_value` once to populate recommended defaults (14 rounds, warm-up 90 s / 3.0 / 0 %, fast 120 s / 4.5 / 5 %, rest 60 s / 3.0 / 0 %, cool-down 90 s / 3.0 / 0 %; total `45:00`).
 
 ### 4. Dashboards
 
@@ -115,7 +115,7 @@ The author's proxies ran without API encryption or an OTA password; this example
 - **Helpers**: `input_select.training_state` (`idle/starting/running/paused/resuming/finishing`, `initial: idle`), timestamps, current phase, round, last target.
 - **`script.training_run`**: generic runner that takes `program_name` and a list of `segments` (`{name, round, dur, s0, i0, s1?, i1?, ramp_dur?, step?}`), computes elapsed time from timestamps (no drift), uses differential writes with a 0.5 s speed-to-incline gap, and verifies treadmill readback after 1.5 s (up to 4 attempts) so DD05 firmware doesn't drop or overwrite segment transitions.
 - **`script.training_interval_10`**: the *Interval 10 min* program: 45 s warm-up (3.0 km/h / 0 %), 5 rounds × (60 s fast 4.5 km/h / 4 % + 45 s recovery 3.0 km/h / 0 %), 30 s cool-down (2.0 km/h / 0 %); total 600 s (10:00), visualized by `/local/training/interval10_v2.svg`.
-- **`script.training_custom`**: *Custom* program reading a snapshot of 13 `input_number.training_custom_*` sliders (rounds 5–30, per-phase duration 30–120 s, speed 2.0–6.0 km/h, incline 0–15 %; recommended defaults give 15 rounds / `28:15` via `sensor.training_custom_total_mmss`).
+- **`script.training_custom`**: *Custom* program reading a snapshot of 13 `input_number.training_custom_*` sliders (rounds 5–30, per-phase duration 30–120 s, speed 2.0–6.0 km/h, incline 0–15 %; recommended defaults give 14 rounds / `45:00` via `sensor.training_custom_total_mmss`).
 - **`script.training_pause` / `script.training_end`**: pause ↔ resume toggle (re-applies target speed/incline on resume), and abort + stop.
 - **Watchdog automations**: while running, if speed < 0.1 km/h for 3 s (stop button, safety key pulled), the sensor is unavailable for 10 s, or `script.training_run` exits unexpectedly (`automation.training_run_died_guard`), the program is cleaned up/aborted and you get a notification.
 - To add a program: copy `training_interval_10`, change `program_name` and `segments`, and add a button + subview to the Training dashboard. The runner does not change.
@@ -146,6 +146,7 @@ The author's proxies ran without API encryption or an OTA password; this example
 
 - **2026-11-16**: Tests and fixes (timeouts, training runner, display dropouts), plus the segment-boundary speed overwrite bug discovered in initial live testing — see [docs/2026-11-16-dd05-debug-log.md](docs/2026-11-16-dd05-debug-log.md) (Traditional Chinese, times in Asia/Taipei).
 - **2026-11-17**: Root-cause evidence & fix for the segment-boundary bug (verified in live testing), *Interval 10 min* v2 + SVG chart, 13-slider *Custom* program, and voice switch from 35 min to *Interval 10 min* — see [docs/2026-11-17-dd05-training-update.md](docs/2026-11-17-dd05-training-update.md) (Traditional Chinese, times in Asia/Taipei).
+- **2026-11-18**: Full 30-minute live test of `script.training_custom` (32 segments, 31 transitions): 0 missed segments, 0 retries, 0 speed overwrites, confirming the 2026-11-17 transition fix — see [docs/2026-11-18-custom-interval-test.md](docs/2026-11-18-custom-interval-test.md) (Traditional Chinese, times in Asia/Taipei).
 
 ## Disclaimer
 
