@@ -60,6 +60,16 @@ docs/                          架構、回饋上游說明，以及按日的測�
 
 ## 安裝步驟
 
+這一章是給**同樣擁有 BGYM DD05、想套用到自己 Home Assistant（HA）**的人。請依序做；`/config` 指你的 HA 設定資料夾（Docker 是掛載進容器的 `/config`，HA OS 可用 Samba、File editor 或 SSH 類附加元件存取）。
+
+### 0. 前提
+
+- **Home Assistant**：Docker 或 HA OS 都可以。作者的測試環境是 Docker（見上方「[測試環境](#測試環境)」，Home Assistant 2026.10.4）；藍牙是透過 ESPHome proxy，不需要 HA 主機自己有藍牙卡。
+- **走步機**：要支援藍牙 FTMS（Fitness Machine Service，`0x1826`）。DD05 已實測可用；其他機型尚未驗證。
+- **ESPHome 藍牙 proxy**：例如 ESP32-C3，放在走步機附近（同一個房間）。設定見下一步與 `esphome/bt-proxy-esp32c3.yaml`。
+- **hassio-ftms 版本**：repo 內的修正檔是針對 hassio-ftms **0.24.6**（pyftms 0.4.10）。用別的版本請不要直接覆蓋檔案，先比對差異。
+- 同一時間 DD05 只接受一個藍牙連線，使用前請先關掉 FitShow 手機 App。
+
 ### 1. 藍牙 proxy（ESP32-C3 + ESPHome）
 
 1. 把 `esphome/secrets.yaml.example` 複製成 `esphome/secrets.yaml` 並填好。
@@ -73,32 +83,68 @@ docs/                          架構、回饋上游說明，以及按日的測�
 ### 2. hassio-ftms 整合與修正
 
 1. 安裝 [hassio-ftms](https://github.com/dudanov/hassio-ftms) 0.24.6（HACS 自訂儲存庫，或手動複製到 `/config/custom_components/ftms/`）。
-2. 套用修正：
+2. 套用 Training Status 修正（把 `patches/` 內的 patch 檔放到可存取處，在 `/config` 執行；先加 `--dry-run` 確認能套用，回退用 `-R`，見 `patches/README.md`）：
    ```bash
    cd /config
    patch -p1 < patches/hassio-ftms-0.24.6-lenient-training-status.patch
    ```
-3. 把 `homeassistant/custom_components/ftms/` 內三個檔案（`__init__.py`、`sensor.py`、`updater_patch.py`）複製到 `/config/custom_components/ftms/` 對應位置。`updater_patch.py` 是新檔，必須和 `__init__.py` 放在同一層。詳見 `patches/README.md` 與 `homeassistant/custom_components/ftms/README.md`。
-4. 重新啟動 HA，DD05 會以藍牙（FTMS）被發現，加入即可。本專案所有 YAML 都使用 `*.treadmill_*` 實體 ID（裝置名稱為「Treadmill」時的預設值）；如果你的不同，請改裝置或實體名稱。
+3. 把 `homeassistant/custom_components/ftms/` 內三個檔案（`__init__.py`、`sensor.py`、`updater_patch.py`）複製到 `/config/custom_components/ftms/` 對應位置。`updater_patch.py` 是新檔，必須和 `__init__.py` 放在同一層。三個檔案的用途：
+
+   | 檔案 | 作用 |
+   |---|---|
+   | `__init__.py` | 寬鬆解析 Training Status；控制逾時 `CONTROL_TIMEOUT = 8.0`（pyftms 預設 2 秒對 DD05 太短）；載入 `updater_patch` |
+   | `sensor.py` | ENUM 感測器值缺漏時維持 `None`，不再退回 `0` 而拋出 `ValueError` |
+   | `updater_patch.py` | 修正 pyftms 0.4.10 在 DD05 交替送兩種 Treadmill Data 封包時丟掉整筆通知（`KeyError: 'step_count'`），否則速度、坡度顯示會落後 |
+
+   詳見 `patches/README.md` 與 `homeassistant/custom_components/ftms/README.md`。
+4. 重新啟動 HA，DD05 會以藍牙（FTMS）被發現，加入即可。本專案所有 YAML 都使用 `*.treadmill_*` 實體 ID（裝置名稱為「Treadmill」時的預設值）；如果你的不同，見下方「[7. 實體名稱對照](#7-實體名稱對照)」。
+
+> [!WARNING]
+> **透過 HACS 更新 hassio-ftms 會覆蓋這些修改。** 更新後請重新套用 patch 並重新複製三個檔案，再重啟 HA。更新前建議先備份 `/config/custom_components/ftms/`。若沒有重新套用，DD05 可能又出現 Training Status 解析錯誤、速度坡度顯示落後等問題。
+
+**上游現況：** 這些修正是本地 monkey-patch。`docs/upstream-notes.md` 目前仍是**尚未送出的草稿**（issue 標題與內容、送出前檢查清單），並引用 python-pyftms PR #60 下的兩則相關留言；文件中沒有任何已合併的上游修正，所以暫時每次更新都要自己重新套用。
 
 **這個修正做什麼：** DD05 送出的 *Training Status* 通知帶有 FTMS 規格未定義的旗標位元（例如 `0x46`），pyftms 0.4.10 遇到會拋出例外，整合建立就中斷。修正只保留規格定義的兩個旗標位元；若仍無法解析，就記一行警告並略過，不讓整合當掉。詳見 `patches/README.md`。長期應由上游（pyftms／hassio-ftms）修正，見 `docs/upstream-notes.md`。
 
-### 3. Home Assistant packages
+### 3. 複製檔案總覽
 
-1. 先啟用 packages（只需一次），內容見 `homeassistant/configuration-snippets/homeassistant_packages.yaml`。
+| repo 來源 | 放到你的 HA | 備註 |
+|---|---|---|
+| `homeassistant/packages/*.yaml`（`dd05_treadmill_remote.yaml`、`dd05_training.yaml`） | `/config/packages/` | 需先在 `configuration.yaml` 啟用 packages（見下一步） |
+| `dashboards/*.yaml`（`treadmill_remote.yaml`、`training.yaml`） | 不是複製檔案：新增儀表板後用「原始設定編輯器」貼上 | 見步驟 5 |
+| `homeassistant/www/training/interval10_v2.svg` | `/config/www/training/interval10_v2.svg` | 「間歇 10 分」課表圖 |
+| `homeassistant/custom_sentences/zh-TW/*.yaml`（`treadmill.yaml`、`training.yaml`） | `/config/custom_sentences/zh-TW/` | Assist 中文句子（選用） |
+| `homeassistant/configuration-snippets/intent_script.yaml` | 合併進 `configuration.yaml` | Assist 語音用（選用） |
+| `homeassistant/configuration-snippets/google_assistant.yaml` | 合併進 `configuration.yaml` 既有的 `google_assistant:` 區塊 | Google 語音用（選用） |
+| `homeassistant/configuration-snippets/homeassistant_packages.yaml` | 合併進 `configuration.yaml` | 啟用 packages，只需一次 |
+
+### 4. Home Assistant packages
+
+1. 先啟用 packages（只需一次），把 `homeassistant/configuration-snippets/homeassistant_packages.yaml` 的內容加進 `configuration.yaml`（已經有 `homeassistant:` 區塊就把 `packages:` 併進去，不要重複寫兩個 `homeassistant:`）：
+   ```yaml
+   homeassistant:
+     packages: !include_dir_named packages
+   ```
 2. 把 `homeassistant/packages/*.yaml` 複製到 `/config/packages/`。
-3. 在 `dd05_training.yaml` 把 `notify.mobile_app_YOUR_PHONE` 換成你手機的通知服務（或刪掉那一步）。
-4. 檢查設定後重新啟動。首次使用「自訂課表」前，可於開發者工具呼叫 `input_number.set_value` 為 `input_number.training_custom_*` 寫入建議預設值（`rounds: 14`、暖身 `90s 3.0/0`、快走 `120s 4.5/5`、緩和 `60s 3.0/0`、收操 `90s 3.0/0`，總長 `45:00`）；這些實體刻意不設 `initial:`，重載與重啟後會保留你的調整。
+3. 通知設定：`dd05_training.yaml` 的 `script.training_notify` 內有 `notify.mobile_app_YOUR_PHONE`（repo 內只有這一處），請換成你手機的通知服務，或把整個 `choose:` 通知區塊刪掉。腳本一律會先建立 HA 內的 persistent notification，所以刪掉手機通知後仍看得到訊息。詳見步驟 6。
+4. 檢查設定後重新啟動（見步驟 8）。首次使用「自訂課表」前請先寫入預設值，也在步驟 8。
 
-### 4. 儀表板
+### 5. 儀表板
 
 1. 將 `homeassistant/www/training/interval10_v2.svg` 複製到 `/config/www/training/interval10_v2.svg`（HA 以 `/local/training/interval10_v2.svg` 存取；若 `/config/www/` 為首次建立，需重啟 HA 才會掛載 `/local/`）。
 2. 設定 → 儀表板 → 新增儀表板（例如「走步機」圖示 `mdi:walk`、「Training」圖示 `mdi:run`）。進入儀表板 → ⋮ → 編輯 → 原始設定編輯器，分別貼上 `dashboards/treadmill_remote.yaml` 和 `dashboards/training.yaml`。只用內建卡片。
 
-### 5. 語音指令
+### 6. 語音指令與通知／Google 佔位設定（選用）
 
-- **Assist（中文）：** 把 `homeassistant/custom_sentences/zh-TW/*.yaml` 複製到 `/config/custom_sentences/zh-TW/`，把 `configuration-snippets/intent_script.yaml` 合併進 `configuration.yaml`，重新啟動。
-- **Google 助理（手動 YAML 設定）：** 把 `configuration-snippets/google_assistant.yaml` 合併到你既有的 `google_assistant:` 區塊，重新啟動後執行 `google_assistant.request_sync`。腳本在 Google Home 裡會是「場景」。
+不用 Assist 或 Google 語音可略過語音部分；但通知佔位仍建議處理。
+
+- **手機通知佔位：** `homeassistant/packages/dd05_training.yaml` 的 `notify.mobile_app_YOUR_PHONE` 要換成你自己的通知服務（開發者工具 → 動作裡搜尋 `notify.mobile_app_` 可找到），或移除該步驟。只有 `dd05_training.yaml` 用到；`dd05_treadmill_remote.yaml` 與儀表板沒有通知設定。
+- **Assist（中文）：** 把 `homeassistant/custom_sentences/zh-TW/*.yaml` 複製到 `/config/custom_sentences/zh-TW/`，把 `configuration-snippets/intent_script.yaml` 合併進 `configuration.yaml`，重新啟動。Assist 語言需設為繁體中文（zh-TW）。
+- **Google 助理（手動 YAML 設定）：** 把 `configuration-snippets/google_assistant.yaml` 合併到你既有的 `google_assistant:` 區塊，重新啟動後執行 `google_assistant.request_sync`。腳本在 Google Home 裡會是「場景」。檔內有兩個佔位要換成你自己的：
+  - `project_id: YOUR_GOOGLE_PROJECT_ID`：你的 Google Cloud／Actions 專案 ID。
+  - `service_account: !include SERVICE_ACCOUNT.json`：你的服務帳戶金鑰檔（放在 `/config`，**不要公開、不要提交到 git**）。
+
+  已經有 Google Assistant 設定的人，只要合併 `entity_config:` 底下的 `script.*` 項目即可，不要覆蓋原有的 `project_id`、`service_account`。
 
 | 說 | 動作 |
 |---|---|
@@ -108,6 +154,77 @@ docs/                          架構、回饋上游說明，以及按日的測�
 | 加速度／減速度 | 速度 ±0.5 km/h（只在跑帶轉動時） |
 | 加坡度／減坡度 | 坡度 ±1 % |
 | 開始間歇訓練／訓練暫停／繼續訓練／結束訓練 | 課表開始／暫停與繼續／結束 |
+
+### 7. 實體名稱對照
+
+本 repo 的 packages 與儀表板只使用下列走步機實體（已逐檔查核；`configuration-snippets` 內沒有走步機實體，只有 `script.*`）：
+
+| 實體 ID | 用途 | 使用的檔案 |
+|---|---|---|
+| `sensor.treadmill_speed` | 目前速度（判斷跑帶是否轉動、安全守護、讀回驗證） | `dd05_treadmill_remote.yaml`、`dd05_training.yaml`、兩份儀表板 |
+| `sensor.treadmill_inclination` | 目前坡度 | 同上 |
+| `number.treadmill_speed` | 寫入目標速度 | `dd05_treadmill_remote.yaml`、`dd05_training.yaml` |
+| `number.treadmill_inclination` | 寫入目標坡度 | 同上 |
+| `button.treadmill_start_resume` | 開始／繼續 | 同上 |
+| `button.treadmill_pause` | 暫停 | 同上 |
+| `button.treadmill_stop` | 停止 | 同上 |
+| `sensor.treadmill_time_elapsed` | 已進行時間 | 只有 `dashboards/treadmill_remote.yaml` |
+| `sensor.treadmill_distance_total` | 總距離 | 只有 `dashboards/treadmill_remote.yaml` |
+
+`sensor.treadmill_status`、`switch.treadmill_connection` 等實體在 packages 與儀表板中**沒有用到**，名稱不同也沒關係。
+
+如果你的實體 ID 不同（例如裝置名稱不是「Treadmill」），有兩種做法：
+
+1. **（最簡單）改 HA 的實體 ID：** 設定 → 裝置與服務 → 實體，逐一點進上表的實體 → 齒輪 → 把「實體 ID」改成上表名稱。HA 會自動更新儀表板、腳本等引用。
+2. **全域搜尋取代：** 在 `packages/*.yaml` 與 `dashboards/*.yaml` 裡，把上表的實體 ID 換成你自己的（一定要整串一起換，避免只換到 `sensor.` 而漏掉 `number.`、`button.`）。
+
+### 8. 重新載入與驗證
+
+**1. 檢查設定：** 開發者工具 → YAML → 檢查設定。有錯誤時先修正，不要重啟。
+
+**2. 何時要重啟、何時可重載：**
+
+| 情況 | 做法 |
+|---|---|
+| 第一次加入 `packages`、`custom_components/ftms`、`google_assistant` 設定 | 必須重新啟動 HA |
+| 第一次建立 `/config/www/`（要讓 `/local/` 生效） | 需重新啟動 HA |
+| 之後只改 scripts、input_number、template、intent_script、conversation（自訂句子） | 可在開發者工具 → YAML 用各自的「重新載入」，不必重啟 |
+| 更新 hassio-ftms 或重新套用修正 | 重新啟動 HA |
+
+**3. 首次部署後寫入自訂課表預設值：** `input_number.training_custom_*` 刻意不設 `initial:`，重載與重啟後會保留你的調整，但第一次是空的。請在開發者工具 → 動作，用 `input_number.set_value` 逐一寫入建議預設值（14 輪，總長 `45:00`）：
+
+| 實體 | 值 |
+|---|---|
+| `input_number.training_custom_rounds` | 14 |
+| `input_number.training_custom_warmup_dur`／`_warmup_speed`／`_warmup_incline` | 90／3.0／0 |
+| `input_number.training_custom_fast_dur`／`_fast_speed`／`_fast_incline` | 120／4.5／5 |
+| `input_number.training_custom_rest_dur`／`_rest_speed`／`_rest_incline` | 60／3.0／0 |
+| `input_number.training_custom_cooldown_dur`／`_cooldown_speed`／`_cooldown_incline` | 90／3.0／0 |
+
+```yaml
+action: input_number.set_value
+target:
+  entity_id: input_number.training_custom_rounds
+data:
+  value: 14
+```
+
+**4. 驗證清單：**
+
+- 上表的走步機實體不是 `unavailable`（`sensor.treadmill_status` 在 DD05 上可能維持 unavailable，屬已知現象，可忽略）。
+- Training 儀表板出現「間歇 10 分」與「自訂課表」兩顆按鈕，點進去可看到狀態列與課表圖。
+- 「自訂課表」頁面的「預估總時長」（`sensor.training_custom_total_mmss`）在預設值下顯示 `45:00`；「間歇 10 分」總長為 10:00。
+- **先不要跑課表。** 站上走步機、夾好安全鑰匙，用「走步機」儀表板以最低速手動控制：按開始後確認跑帶有轉、速度 +／− 與坡度 +／− 有反應、停止能停下來，確認後再用課表。
+
+### 9. 安全提醒與故障處理
+
+- 先在**低速**測試；旁邊最好有人，能隨時按走步機上的停止或拔掉安全鑰匙。更多見下方「[安全須知](#安全須知)」。
+- **HA 控制有延遲，逾時不代表沒執行。** pyftms 預設控制逾時只有 2 秒，DD05 回應較慢時，HA 會先報錯，指令卻可能稍後才生效（`docs/2026-11-16-dd05-debug-log.md` 記錄過 HA 回報逾時後約 5 秒跑帶才開始轉）。看到錯誤時請先看走步機實際狀態，不要連按好幾次開始；本 repo 已把控制逾時調成 8 秒。
+- **HA 重啟後 DD05 偶發不回應**（藍牙顯示已連線，但控制逾時、沒有狀態回報；原因尚未查清）：
+  1. 把 DD05 **斷電重開**（拔電源再插上）。
+  2. 在 HA 重新載入 **ESPHome proxy** 裝置（設定 → 裝置與服務 → ESPHome → 該 proxy → 重新載入）。
+  3. 重新載入 **FTMS 整合**。
+  4. 先用手動開始／暫停確認控制恢復，再使用課表。
 
 ## 訓練課表執行器
 
