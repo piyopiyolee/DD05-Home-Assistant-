@@ -9,9 +9,17 @@ Control and monitor a **BGYM DD05** walking treadmill from Home Assistant over B
 ## What it does
 
 - **Live data**: speed, incline, elapsed time, distance, energy, heart rate.
-- **Remote dashboard** (`dashboards/treadmill_remote.yaml`): start/pause, speed ±0.5 km/h, incline ±1 %, stop.
-- **Training runner** (`homeassistant/packages/dd05_training.yaml` + `dashboards/training.yaml`): a generic, timestamp-based segment runner (with differential writes and readback verification), plus *Interval 10 min* (with an SVG schedule chart) and a 13-slider *Custom* program. New programs are added by writing a new definition script only.
-- **Voice**: Assist custom sentences in Traditional Chinese (開始走 / 暫停走 / 停止走 / 加速度 / 減速度 / 加坡度 / 減坡度, plus starting *Interval 10 min*, pausing, resuming, and ending training), and the same scripts exposed to Google Assistant as scenes.
+- **Remote dashboard** (`dashboards/treadmill_remote.yaml`, requires the HACS [button-card](https://github.com/custom-cards/button-card) custom card): the main view has speed ±0.5 km/h, incline ±1 %, time and distance, start/pause/stop, and an HIIT toggle that decides whether Start runs a program or just starts the belt manually. The settings subview uses +/- steppers for warm-up, fast walk, recovery, cool-down and rounds. Screenshots below.
+- **Training runner** (`homeassistant/packages/dd05_training.yaml`): a generic, timestamp-based segment runner (with differential writes and readback verification). HIIT is built from the settings-page parameters (recommended defaults: 14 rounds, `45:00` total). The old fixed *Interval 10 min* program is now a compatibility wrapper: Assist / Google scenes that still call `script.training_interval_10` turn HIIT on and start the current settings. The standalone Training dashboard (`dashboards/training.yaml`) is unchanged.
+- **Voice**: Assist custom sentences in Traditional Chinese (開始走 / 暫停走 / 停止走 / 加速度 / 減速度 / 加坡度 / 減坡度, plus starting, pausing and ending interval training or HIIT), and the same scripts exposed to Google Assistant as scenes.
+
+**Main view:** speed and incline, time and distance, program status, start/pause/stop, plus the HIIT toggle and a link to settings. With HIIT on, Start runs the program from the current settings; with HIIT off it is manual control.
+
+![Treadmill main view](docs/images/remote.png)
+
+**Settings:** +/- steppers for warm-up, fast walk, recovery, cool-down and rounds. +/- writes the helpers immediately; Save only returns to the main view.
+
+![Treadmill settings](docs/images/settings.png)
 
 ## Tested setup
 
@@ -23,6 +31,7 @@ Control and monitor a **BGYM DD05** walking treadmill from Home Assistant over B
 | Home Assistant | 2026.10.4 (Docker) |
 | Integration | [dudanov/hassio-ftms](https://github.com/dudanov/hassio-ftms) 0.24.6 (pyftms 0.4.10) + the patch in `patches/` |
 | Bluetooth proxy | ESP32-C3 (esp32-c3-devkitm-1), ESPHome 2026.10.1, **ESP-IDF pinned to 5.5.5** |
+| Custom card | [button-card](https://github.com/custom-cards/button-card) **7.0.1** (HACS; required for the treadmill dashboard) |
 
 Other FitShow-based walking pads that speak FTMS will probably work too, but only the DD05 has been tested.
 
@@ -37,9 +46,9 @@ ESP32-C3 ESPHome Bluetooth proxy   (esphome/bt-proxy-esp32c3.yaml)
         ▼
 Home Assistant ── hassio-ftms (custom integration, patched)
         ├── entities: sensor.treadmill_*, number.treadmill_*, button.treadmill_*
-        ├── packages/dd05_treadmill_remote.yaml  → remote scripts
-        ├── packages/dd05_training.yaml          → helpers, runner, safety watchdog
-        ├── dashboards (Treadmill remote, Training)
+        ├── packages/dd05_treadmill_remote.yaml  → remote speed/incline scripts
+        ├── packages/dd05_training.yaml          → helpers, HIIT runner, remote wrappers, safety watchdog
+        ├── dashboards (Treadmill remote/settings, optional Training)
         ├── Assist custom sentences + intent_script
         └── Google Assistant (scripts exposed as scenes)
 ```
@@ -55,7 +64,7 @@ homeassistant/configuration-snippets/   intent_script, google_assistant, package
 dashboards/                    Lovelace dashboards (paste into Raw configuration editor)
 homeassistant/custom_components/ftms/  modified hassio-ftms files (not a complete integration)
 patches/                       hassio-ftms patch (Apache-2.0, see patches/README.md)
-docs/                          architecture notes, upstream notes, dated debug logs
+docs/                          architecture notes, upstream notes, dated debug logs, dashboard screenshots (`docs/images/`)
 ```
 
 ## Installation
@@ -68,6 +77,7 @@ This chapter is for **other BGYM DD05 owners who want to apply this project to t
 - **Treadmill**: must support Bluetooth FTMS (Fitness Machine Service, `0x1826`). The DD05 is verified; other models are untested.
 - **ESPHome Bluetooth proxy**: e.g. an ESP32-C3, placed near the treadmill (same room). See the next step and `esphome/bt-proxy-esp32c3.yaml`.
 - **hassio-ftms version**: the patched files in this repo target hassio-ftms **0.24.6** (pyftms 0.4.10). With another version, do not overwrite files blindly; compare first.
+- **button-card**: the treadmill dashboard uses the `custom:button-card` card. Install [button-card](https://github.com/custom-cards/button-card) from HACS first (tested 7.0.1). The Training dashboard still uses built-in cards only.
 - The DD05 accepts only one Bluetooth connection at a time, so close the FitShow phone app before using it.
 
 ### 1. Bluetooth proxy (ESP32-C3 + ESPHome)
@@ -111,8 +121,8 @@ The author's proxies ran without API encryption or an OTA password; this example
 | Source in this repo | Destination in your HA | Notes |
 |---|---|---|
 | `homeassistant/packages/*.yaml` (`dd05_treadmill_remote.yaml`, `dd05_training.yaml`) | `/config/packages/` | Enable packages in `configuration.yaml` first (next step) |
-| `dashboards/*.yaml` (`treadmill_remote.yaml`, `training.yaml`) | Not copied: create a dashboard and paste into the Raw configuration editor | See step 5 |
-| `homeassistant/www/training/interval10_v2.svg` | `/config/www/training/interval10_v2.svg` | *Interval 10 min* chart |
+| `dashboards/*.yaml` (`treadmill_remote.yaml`, `training.yaml`) | Not copied: create a dashboard and paste into the Raw configuration editor. The treadmill page needs button-card and the URL path must be `treadmill-remote` | See step 5 |
+| `homeassistant/www/training/interval10_v2.svg` | `/config/www/training/interval10_v2.svg` | Chart used by the optional Training dashboard's *Interval 10 min* page |
 | `homeassistant/custom_sentences/zh-TW/*.yaml` (`treadmill.yaml`, `training.yaml`) | `/config/custom_sentences/zh-TW/` | Assist sentences (optional) |
 | `homeassistant/configuration-snippets/intent_script.yaml` | Merge into `configuration.yaml` | For Assist voice (optional) |
 | `homeassistant/configuration-snippets/google_assistant.yaml` | Merge into the existing `google_assistant:` block of `configuration.yaml` | For Google voice (optional) |
@@ -127,12 +137,14 @@ The author's proxies ran without API encryption or an OTA password; this example
    ```
 2. Copy `homeassistant/packages/*.yaml` to `/config/packages/`.
 3. Notifications: `script.training_notify` in `dd05_training.yaml` contains `notify.mobile_app_YOUR_PHONE` (the only occurrence in the repo). Replace it with your phone's notify service, or delete the whole `choose:` notification block. The script always creates a persistent notification inside HA first, so messages are still visible without the phone notification. See step 6.
-4. Check the configuration, then restart (step 8). Populate the custom-program defaults before first use, also in step 8.
+4. Check the configuration, then restart (step 8). Populate the HIIT / settings-page defaults before first use, also in step 8.
 
 ### 5. Dashboards
 
-1. Copy `homeassistant/www/training/interval10_v2.svg` to `/config/www/training/interval10_v2.svg` (restart HA once if `/config/www/` did not previously exist so `/local/training/interval10_v2.svg` is served).
-2. Settings → Dashboards → Add dashboard (e.g. "Treadmill", icon `mdi:walk`, and "Training", icon `mdi:run`). Open each one → ⋮ → Edit → Raw configuration editor, and paste `dashboards/treadmill_remote.yaml` / `dashboards/training.yaml`. Only built-in cards are used (`picture` card renders the SVG chart).
+1. Install [button-card](https://github.com/custom-cards/button-card) from HACS (tested 7.0.1). It is required for the treadmill dashboard.
+2. If you also want the standalone Training dashboard, copy `homeassistant/www/training/interval10_v2.svg` to `/config/www/training/interval10_v2.svg` (restart HA once if `/config/www/` did not previously exist so `/local/training/interval10_v2.svg` is served).
+3. Settings → Dashboards → Add dashboard, title e.g. "Treadmill", icon `mdi:walk`. **Set the URL path to `treadmill-remote`** (the settings subview navigates to `/treadmill-remote/custom` and back to `/treadmill-remote/remote`; if you choose another path, edit those two strings in the YAML). Open the dashboard → ⋮ → Edit → Raw configuration editor, and paste `dashboards/treadmill_remote.yaml`.
+4. (Optional) Add a "Training" dashboard the same way (icon `mdi:run`) and paste `dashboards/training.yaml`. That file still uses only built-in cards and is unchanged since 2026-11-17. Note that its *Interval 10 min* Start button still calls `script.training_interval_10`, which now runs HIIT with the current settings rather than the old fixed 10-minute program. Day-to-day use is meant to go through the treadmill page.
 
 ### 6. Voice commands and notification / Google placeholders (optional)
 
@@ -153,7 +165,7 @@ Skip the voice parts if you use neither Assist nor Google; you should still hand
 | 停止走 / 走步機停止 | stop |
 | 加速度 / 減速度 | speed +/- 0.5 km/h (only while the belt is moving) |
 | 加坡度 / 減坡度 | incline +/- 1 % |
-| 開始間歇訓練 / 訓練暫停 / 繼續訓練 / 結束訓練 | training runner start / pause-resume / end |
+| 開始間歇訓練 / 開始 HIIT / 訓練暫停 / 繼續訓練 / 結束訓練 | turn HIIT on and start the current settings / pause-resume / end |
 
 ### 7. Entity name mapping
 
@@ -212,9 +224,8 @@ data:
 **4. Verification checklist:**
 
 - The treadmill entities in the table above are not `unavailable` (`sensor.treadmill_status` may stay unavailable on the DD05; this is a known issue and can be ignored).
-- The Training dashboard shows both *間歇 10 分* (Interval 10 min) and *自訂課表* (Custom program) buttons, and their pages show the status row and chart.
-- On the *自訂課表* page the estimated total (`sensor.training_custom_total_mmss`) reads `45:00` with the defaults; *Interval 10 min* totals 10:00.
-- **Do not run a program yet.** Stand on the treadmill with the safety key clipped on and use the "Treadmill" dashboard at the lowest speed: after Start, confirm the belt moves, speed +/− and incline +/− respond, and Stop stops it. Only then use programs.
+- The treadmill main view shows speed/incline, time and distance, the HIIT toggle and the settings entry. On the settings page the estimated total (`sensor.training_custom_total_mmss`) reads `45:00` with the defaults.
+- **Do not run a program yet.** Stand on the treadmill with the safety key clipped on, leave HIIT off, and use the treadmill dashboard at the lowest speed: after Start, confirm the belt moves, speed +/− and incline +/− respond, and Stop stops it. Only then turn HIIT on and run a program.
 
 ### 9. Safety reminders and recovery
 
@@ -228,13 +239,14 @@ data:
 
 ## Training runner
 
-- **Helpers**: `input_select.training_state` (`idle/starting/running/paused/resuming/finishing`, `initial: idle`), timestamps, current phase, round, last target.
+- **Helpers**: `input_select.training_state` (`idle/starting/running/paused/resuming/finishing`, `initial: idle`), timestamps, current phase, round, last target, plus `input_boolean.training_hiit` (the main-view toggle; no `initial:`, so a restart restores the last on/off state).
 - **`script.training_run`**: generic runner that takes `program_name` and a list of `segments` (`{name, round, dur, s0, i0, s1?, i1?, ramp_dur?, step?}`), computes elapsed time from timestamps (no drift), uses differential writes with a 0.5 s speed-to-incline gap, and verifies treadmill readback after 1.5 s (up to 4 attempts) so DD05 firmware doesn't drop or overwrite segment transitions.
-- **`script.training_interval_10`**: the *Interval 10 min* program: 45 s warm-up (3.0 km/h / 0 %), 5 rounds × (60 s fast 4.5 km/h / 4 % + 45 s recovery 3.0 km/h / 0 %), 30 s cool-down (2.0 km/h / 0 %); total 600 s (10:00), visualized by `/local/training/interval10_v2.svg`.
-- **`script.training_custom`**: *Custom* program reading a snapshot of 13 `input_number.training_custom_*` sliders (rounds 5–30, per-phase duration 30–120 s, speed 2.0–6.0 km/h, incline 0–15 %; recommended defaults give 14 rounds / `45:00` via `sensor.training_custom_total_mmss`).
+- **`script.training_custom`**: reads a snapshot of the 13 `input_number.training_custom_*` helpers (rounds 5–30, per-phase duration 30–120 s, speed 2.0–6.0 km/h, incline 0–15 %) and hands the resulting HIIT program to `script.training_run`. Estimated total is shown by `sensor.training_custom_total_mmss` (recommended defaults: 14 rounds / `45:00`). The settings-page +/- steppers write these helpers.
+- **`script.training_interval_10`**: compatibility wrapper (entity ID kept for existing Assist / Google scenes). It no longer embeds a fixed 10-minute program; it turns HIIT on and then calls `script.training_custom`. If a session is already paused, that is treated as resume.
+- **`script.treadmill_remote_start` / `_pause` / `_stop`**: the treadmill main view's Start / Pause / Stop buttons call only these three. Start while paused resumes the program; with HIIT on and idle it starts the current settings; with HIIT off and idle it starts the belt manually.
 - **`script.training_pause` / `script.training_end`**: pause ↔ resume toggle (re-applies target speed/incline on resume), and abort + stop.
-- **Watchdog automations**: while running, if speed < 0.1 km/h for 3 s (stop button, safety key pulled), the sensor is unavailable for 10 s, or `script.training_run` exits unexpectedly (`automation.training_run_died_guard`), the program is cleaned up/aborted and you get a notification.
-- To add a program: copy `training_interval_10`, change `program_name` and `segments`, and add a button + subview to the Training dashboard. The runner does not change.
+- **Watchdog and wrap-up automations**: while running, if speed < 0.1 km/h for 3 s (stop button, safety key pulled), the sensor is unavailable for 10 s, or `script.training_run` exits unexpectedly (`automation.training_run_died_guard`), the program is cleaned up/aborted and you get a notification. After a normal finish, if the phase stays at "已完成" and the state is idle for 2 minutes, the phase is reset to "待機" (the treadmill is not touched).
+- To add a program: write a definition script that builds `segments` and calls `script.training_run`. Do not copy `training_interval_10` any more; that script is now the HIIT wrapper.
 
 ## Troubleshooting
 
@@ -260,6 +272,7 @@ data:
 
 ## Development log
 
+- **2026-11-22**: Treadmill dashboard rebuilt with button-card (main view + settings subview), HIIT toggle and remote wrapper scripts; `script.training_interval_10` became a compatibility wrapper — see [docs/2026-11-22-treadmill-remote-hiit.md](docs/2026-11-22-treadmill-remote-hiit.md) (Traditional Chinese, times in Asia/Taipei).
 - **2026-11-16**: Tests and fixes (timeouts, training runner, display dropouts), plus the segment-boundary speed overwrite bug discovered in initial live testing — see [docs/2026-11-16-dd05-debug-log.md](docs/2026-11-16-dd05-debug-log.md) (Traditional Chinese, times in Asia/Taipei).
 - **2026-11-17**: Root-cause evidence & fix for the segment-boundary bug (verified in live testing), *Interval 10 min* v2 + SVG chart, 13-slider *Custom* program, and voice switch from 35 min to *Interval 10 min* — see [docs/2026-11-17-dd05-training-update.md](docs/2026-11-17-dd05-training-update.md) (Traditional Chinese, times in Asia/Taipei).
 - **2026-11-18**: Full 30-minute live test of `script.training_custom` (32 segments, 31 transitions): 0 missed segments, 0 retries, 0 speed overwrites, confirming the 2026-11-17 transition fix — see [docs/2026-11-18-custom-interval-test.md](docs/2026-11-18-custom-interval-test.md) (Traditional Chinese, times in Asia/Taipei).
@@ -275,4 +288,5 @@ See [LICENSE](LICENSE) for this project's own files. The file in `patches/` modi
 ## Credits
 
 - [dudanov/hassio-ftms](https://github.com/dudanov/hassio-ftms) and pyftms by Sergey Dudanov.
+- [custom-cards/button-card](https://github.com/custom-cards/button-card).
 - ESPHome Bluetooth proxy.

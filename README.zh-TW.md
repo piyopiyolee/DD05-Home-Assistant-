@@ -9,9 +9,17 @@
 ## 功能
 
 - **即時數據**：速度、坡度、時間、距離、熱量、心率。
-- **遙控儀表板**（`dashboards/treadmill_remote.yaml`）：開始／暫停、速度 ±0.5 km/h、坡度 ±1 %、停止。
-- **訓練課表**（`homeassistant/packages/dd05_training.yaml` + `dashboards/training.yaml`）：以時間戳計時的通用分段執行器（含差異寫入與讀回重送保護），內建「間歇 10 分」（含 SVG 課表圖）與「自訂課表」（13 個滑桿設定暖身／快走／緩和／收操與輪數）。新增固定課表只要多寫一支定義腳本。
-- **語音**：Assist 繁體中文句子（開始走／暫停走／停止走／加速度／減速度／加坡度／減坡度，以及間歇訓練開始／暫停／結束，預設啟動間歇 10 分），同一組腳本也可開放給 Google 助理（在 Google Home 裡是「場景」）。
+- **遙控儀表板**（`dashboards/treadmill_remote.yaml`，需 HACS [button-card](https://github.com/custom-cards/button-card)）：主頁可加減速度（±0.5 km/h）與坡度（±1 %）、看時間與距離、開始／暫停／停止，並用 HIIT 開關決定「開始」是跑課表還是手動控制。設定子頁用 +/- 調整暖身／快走／緩和／收操與輪數。截圖見下方。
+- **訓練課表**（`homeassistant/packages/dd05_training.yaml`）：以時間戳計時的通用分段執行器（含差異寫入與讀回重送保護）。HIIT 依設定頁的參數組成課表（建議預設 14 輪、總長 `45:00`）。舊的固定「間歇 10 分」已改成相容包裝：語音或 Google 場景「間歇訓練開始」仍呼叫 `script.training_interval_10`，但會先開啟 HIIT，再依目前設定開始。獨立的 Training 儀表板（`dashboards/training.yaml`）仍保留、內容未改。
+- **語音**：Assist 繁體中文句子（開始走／暫停走／停止走／加速度／減速度／加坡度／減坡度，以及間歇訓練或 HIIT 的開始／暫停／結束），同一組腳本也可開放給 Google 助理（在 Google Home 裡是「場景」）。
+
+**主頁**：速度／坡度、時間與距離、課表狀態、開始／暫停／停止，以及 HIIT 開關與設定入口。HIIT 打開時，按開始會依設定頁的參數跑課表；關掉時則是手動控制。
+
+![走步機主頁](docs/images/remote.png)
+
+**設定頁**：用 +/- 調整暖身、快走、緩和、收操與輪數。+/- 會立刻寫入輔助元件；「儲存」只是回到主頁。
+
+![走步機設定頁](docs/images/settings.png)
 
 ## 測試環境
 
@@ -23,6 +31,7 @@
 | Home Assistant | 2026.10.4（Docker） |
 | 整合 | [dudanov/hassio-ftms](https://github.com/dudanov/hassio-ftms) 0.24.6（pyftms 0.4.10）＋ `patches/` 內的修正 |
 | 藍牙 proxy | ESP32-C3（esp32-c3-devkitm-1）、ESPHome 2026.10.1、**ESP-IDF 固定 5.5.5** |
+| 自訂卡片 | [button-card](https://github.com/custom-cards/button-card) **7.0.1**（HACS；走步機儀表板必裝） |
 
 其他使用 FitShow 模組、支援 FTMS 的走步機很可能也能用，但目前只實測過 DD05。
 
@@ -37,9 +46,9 @@ ESP32-C3 ESPHome 藍牙 proxy（esphome/bt-proxy-esp32c3.yaml）
         ▼
 Home Assistant ── hassio-ftms（自訂整合，已套修正）
         ├── 實體：sensor.treadmill_*、number.treadmill_*、button.treadmill_*
-        ├── packages/dd05_treadmill_remote.yaml → 遙控腳本
-        ├── packages/dd05_training.yaml         → 輔助元件、課表執行器、安全守護
-        ├── 儀表板（走步機遙控、Training）
+        ├── packages/dd05_treadmill_remote.yaml → 遙控加減速度／坡度腳本
+        ├── packages/dd05_training.yaml         → 輔助元件、HIIT 課表執行器、遙控包裝腳本、安全守護
+        ├── 儀表板（走步機遙控／設定、選用的 Training）
         ├── Assist 自訂句子 + intent_script
         └── Google 助理（腳本以場景開放）
 ```
@@ -68,6 +77,7 @@ docs/                          架構、回饋上游說明，以及按日的測�
 - **走步機**：要支援藍牙 FTMS（Fitness Machine Service，`0x1826`）。DD05 已實測可用；其他機型尚未驗證。
 - **ESPHome 藍牙 proxy**：例如 ESP32-C3，放在走步機附近（同一個房間）。設定見下一步與 `esphome/bt-proxy-esp32c3.yaml`。
 - **hassio-ftms 版本**：repo 內的修正檔是針對 hassio-ftms **0.24.6**（pyftms 0.4.10）。用別的版本請不要直接覆蓋檔案，先比對差異。
+- **button-card**：走步機儀表板使用自訂卡片 `custom:button-card`，請先用 HACS 安裝 [button-card](https://github.com/custom-cards/button-card)（實測 7.0.1）。Training 儀表板仍只用內建卡片。
 - 同一時間 DD05 只接受一個藍牙連線，使用前請先關掉 FitShow 手機 App。
 
 ### 1. 藍牙 proxy（ESP32-C3 + ESPHome）
@@ -111,8 +121,8 @@ docs/                          架構、回饋上游說明，以及按日的測�
 | repo 來源 | 放到你的 HA | 備註 |
 |---|---|---|
 | `homeassistant/packages/*.yaml`（`dd05_treadmill_remote.yaml`、`dd05_training.yaml`） | `/config/packages/` | 需先在 `configuration.yaml` 啟用 packages（見下一步） |
-| `dashboards/*.yaml`（`treadmill_remote.yaml`、`training.yaml`） | 不是複製檔案：新增儀表板後用「原始設定編輯器」貼上 | 見步驟 5 |
-| `homeassistant/www/training/interval10_v2.svg` | `/config/www/training/interval10_v2.svg` | 「間歇 10 分」課表圖 |
+| `dashboards/*.yaml`（`treadmill_remote.yaml`、`training.yaml`） | 不是複製檔案：新增儀表板後用「原始設定編輯器」貼上；走步機頁需要 button-card，且 URL 路徑須為 `treadmill-remote` | 見步驟 5 |
+| `homeassistant/www/training/interval10_v2.svg` | `/config/www/training/interval10_v2.svg` | 給選用的 Training 儀表板「間歇 10 分」頁用的課表圖 |
 | `homeassistant/custom_sentences/zh-TW/*.yaml`（`treadmill.yaml`、`training.yaml`） | `/config/custom_sentences/zh-TW/` | Assist 中文句子（選用） |
 | `homeassistant/configuration-snippets/intent_script.yaml` | 合併進 `configuration.yaml` | Assist 語音用（選用） |
 | `homeassistant/configuration-snippets/google_assistant.yaml` | 合併進 `configuration.yaml` 既有的 `google_assistant:` 區塊 | Google 語音用（選用） |
@@ -127,12 +137,14 @@ docs/                          架構、回饋上游說明，以及按日的測�
    ```
 2. 把 `homeassistant/packages/*.yaml` 複製到 `/config/packages/`。
 3. 通知設定：`dd05_training.yaml` 的 `script.training_notify` 內有 `notify.mobile_app_YOUR_PHONE`（repo 內只有這一處），請換成你手機的通知服務，或把整個 `choose:` 通知區塊刪掉。腳本一律會先建立 HA 內的 persistent notification，所以刪掉手機通知後仍看得到訊息。詳見步驟 6。
-4. 檢查設定後重新啟動（見步驟 8）。首次使用「自訂課表」前請先寫入預設值，也在步驟 8。
+4. 檢查設定後重新啟動（見步驟 8）。首次使用 HIIT／設定頁前請先寫入預設值，也在步驟 8。
 
 ### 5. 儀表板
 
-1. 將 `homeassistant/www/training/interval10_v2.svg` 複製到 `/config/www/training/interval10_v2.svg`（HA 以 `/local/training/interval10_v2.svg` 存取；若 `/config/www/` 為首次建立，需重啟 HA 才會掛載 `/local/`）。
-2. 設定 → 儀表板 → 新增儀表板（例如「走步機」圖示 `mdi:walk`、「Training」圖示 `mdi:run`）。進入儀表板 → ⋮ → 編輯 → 原始設定編輯器，分別貼上 `dashboards/treadmill_remote.yaml` 和 `dashboards/training.yaml`。只用內建卡片。
+1. 用 HACS 安裝 [button-card](https://github.com/custom-cards/button-card)（實測 7.0.1），這是走步機儀表板必裝的自訂卡片。
+2. 若要一併使用獨立的 Training 儀表板，將 `homeassistant/www/training/interval10_v2.svg` 複製到 `/config/www/training/interval10_v2.svg`（HA 以 `/local/training/interval10_v2.svg` 存取；若 `/config/www/` 為首次建立，需重啟 HA 才會掛載 `/local/`）。
+3. 設定 → 儀表板 → 新增儀表板，標題例如「走步機」、圖示 `mdi:walk`。**URL 路徑請設成 `treadmill-remote`**（設定子頁會導向 `/treadmill-remote/custom`，返回主頁為 `/treadmill-remote/remote`；路徑不同就要改 YAML 裡的這兩條）。進入儀表板 → ⋮ → 編輯 → 原始設定編輯器，貼上 `dashboards/treadmill_remote.yaml`。
+4. （選用）同樣方式新增「Training」儀表板（圖示 `mdi:run`），貼上 `dashboards/training.yaml`。這份仍只用內建卡片，內容與 2026-11-17 相同。請注意：其中「間歇 10 分」的開始鈕仍呼叫 `script.training_interval_10`，現在會改跑設定頁的 HIIT，而不是舊的固定 10 分鐘課表。日常操作建議直接用走步機頁。
 
 ### 6. 語音指令與通知／Google 佔位設定（選用）
 
@@ -153,7 +165,7 @@ docs/                          架構、回饋上游說明，以及按日的測�
 | 停止走／走步機停止 | 停止 |
 | 加速度／減速度 | 速度 ±0.5 km/h（只在跑帶轉動時） |
 | 加坡度／減坡度 | 坡度 ±1 % |
-| 開始間歇訓練／訓練暫停／繼續訓練／結束訓練 | 課表開始／暫停與繼續／結束 |
+| 開始間歇訓練／開始 HIIT／訓練暫停／繼續訓練／結束訓練 | 開啟 HIIT 並依目前設定開始課表／暫停與繼續／結束 |
 
 ### 7. 實體名稱對照
 
@@ -212,9 +224,8 @@ data:
 **4. 驗證清單：**
 
 - 上表的走步機實體不是 `unavailable`（`sensor.treadmill_status` 在 DD05 上可能維持 unavailable，屬已知現象，可忽略）。
-- Training 儀表板出現「間歇 10 分」與「自訂課表」兩顆按鈕，點進去可看到狀態列與課表圖。
-- 「自訂課表」頁面的「預估總時長」（`sensor.training_custom_total_mmss`）在預設值下顯示 `45:00`；「間歇 10 分」總長為 10:00。
-- **先不要跑課表。** 站上走步機、夾好安全鑰匙，用「走步機」儀表板以最低速手動控制：按開始後確認跑帶有轉、速度 +／− 與坡度 +／− 有反應、停止能停下來，確認後再用課表。
+- 走步機主頁看得到速度／坡度、時間與距離、HIIT 開關和設定入口；設定頁的預估總時長（`sensor.training_custom_total_mmss`）在預設值下顯示 `45:00`。
+- **先不要跑課表。** 站上走步機、夾好安全鑰匙，先把 HIIT 關掉，用走步機儀表板以最低速手動控制：按開始後確認跑帶有轉、速度 +／− 與坡度 +／− 有反應、停止能停下來。確認後再打開 HIIT 跑課表。
 
 ### 9. 安全提醒與故障處理
 
@@ -228,13 +239,14 @@ data:
 
 ## 訓練課表執行器
 
-- **輔助元件**：`input_select.training_state`（`idle/starting/running/paused/resuming/finishing`，`initial: idle`）、時間戳、目前階段、輪數、上次寫入值。
+- **輔助元件**：`input_select.training_state`（`idle/starting/running/paused/resuming/finishing`，`initial: idle`）、時間戳、目前階段、輪數、上次寫入值，以及 `input_boolean.training_hiit`（主頁開關，不設 `initial:`，重啟後還原上次狀態）。
 - **`script.training_run`**：通用執行器，接收 `program_name` 和 `segments` 清單（`{name, round, dur, s0, i0, s1?, i1?, ramp_dur?, step?}`），用時間戳計算經過時間（不會漂移），只在跑帶轉動時寫入與目標或讀回有差異的速度／坡度；速度與坡度同時變更時中間間隔 0.5 秒，並於 1.5 秒後核對 `sensor` 讀回、不符僅針對該項補送（最多 4 次）。
-- **`script.training_interval_10`**：「間歇 10 分」：暖身 45 秒 `3.0 km/h / 0%`，5 輪 ×（快走 60 秒 `4.5 km/h / 4%` ＋ 緩和 45 秒 `3.0 km/h / 0%`），收操 30 秒 `2.0 km/h / 0%`。總長 10:00（600 秒），結束送停止；對應 `/training/interval-10` 課表圖頁面。
-- **`script.training_custom`**：讀取 13 個 `input_number.training_custom_*` 滑桿快照（輪數 5–30、時間 30–120s、速度 2.0–6.0 km/h、坡度 0–15%）組成課表並交由 `script.training_run` 執行，並以 `sensor.training_custom_total_mmss` 顯示預估總時長（建議預設 14 輪共 `45:00`）。
+- **`script.training_custom`**：讀取 13 個 `input_number.training_custom_*` 快照（輪數 5–30、時間 30–120s、速度 2.0–6.0 km/h、坡度 0–15%）組成 HIIT 課表，交由 `script.training_run` 執行，並以 `sensor.training_custom_total_mmss` 顯示預估總時長（建議預設 14 輪共 `45:00`）。設定頁的 +/- 寫的就是這組輔助元件。
+- **`script.training_interval_10`**：相容包裝（entity_id 保留給既有語音／Google 場景）。不再內建固定 10 分鐘課表；改為先開啟 HIIT，再呼叫 `script.training_custom`。暫停中則視為繼續。
+- **`script.treadmill_remote_start`／`_pause`／`_stop`**：走步機主頁的開始／暫停／停止只呼叫這三支。暫停中按開始會繼續課表；HIIT 開啟且待機則依設定開始課表；HIIT 關閉且待機則手動開始走步機。
 - **`script.training_pause`／`script.training_end`**：暫停與繼續切換；中止並停止。
-- **安全守護自動化**：執行中若速度 < 0.1 km/h 持續 3 秒（按停止、拔安全鑰匙）或感測器 unavailable 持續 10 秒，立即中止課表並通知；另含 `automation.training_run_died_guard` 防止執行器異常中止時跑帶未停。
-- 新增課表：複製 `training_interval_10`，改 `program_name` 和 `segments`，在 Training 儀表板加一顆按鈕和子視圖即可，執行器不用改。
+- **安全守護與收尾自動化**：執行中若速度 < 0.1 km/h 持續 3 秒（按停止、拔安全鑰匙）或感測器 unavailable 持續 10 秒，立即中止課表並通知；另含 `automation.training_run_died_guard` 防止執行器異常中止時跑帶未停。課表正常跑完後，階段顯示「已完成」且狀態為 idle 持續 2 分鐘，會把階段收回「待機」（不控制走步機）。
+- 新增課表：寫一支定義腳本組成 `segments` 後呼叫 `script.training_run` 即可，執行器不用改。不要再複製 `training_interval_10`，它已經改成 HIIT 包裝。
 
 ## 疑難排解
 
@@ -260,6 +272,7 @@ data:
 
 ## 開發紀錄
 
+- [docs/2026-11-22-treadmill-remote-hiit.md](docs/2026-11-22-treadmill-remote-hiit.md)：走步機儀表板改為 button-card 主頁＋設定子頁、新增 HIIT 開關與遙控包裝腳本，並把 `script.training_interval_10` 改成相容包裝（時間為 Asia/Taipei）。
 - [docs/2026-11-18-custom-interval-test.md](docs/2026-11-18-custom-interval-test.md)：`script.training_custom` 30 分鐘（32 段、31 次換段）實測紀錄：零錯段、零補送、零跳回舊值，驗證 2026-11-17 換段修正完全有效（時間為 Asia/Taipei）。
 - [docs/2026-11-17-dd05-training-update.md](docs/2026-11-17-dd05-training-update.md)：修正段落交接速度覆蓋 bug 並實測驗證、改版「間歇 10 分（第二版）」＋ SVG 課表圖、新增 13 個滑桿「自訂課表」、移除 3 分／35 分課表與更新語音設定（時間為 Asia/Taipei）。
 - [docs/2026-11-16-dd05-debug-log.md](docs/2026-11-16-dd05-debug-log.md)：控制逾時、課表執行器、`updater_patch.py` 顯示丟包修正，以及當時記錄的段落交接速度問題（已於 2026-11-17 修正）。
@@ -275,4 +288,5 @@ data:
 ## 致謝
 
 - [dudanov/hassio-ftms](https://github.com/dudanov/hassio-ftms) 與 pyftms（Sergey Dudanov）。
+- [custom-cards/button-card](https://github.com/custom-cards/button-card)。
 - ESPHome 藍牙 proxy。
