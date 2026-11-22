@@ -1,6 +1,8 @@
 # DD05 treadmill remote-control scripts (used by the 'Treadmill' dashboard and voice commands).
 # Install: copy to /config/packages/ (requires 'homeassistant: packages: !include_dir_named packages').
 # Speed is only changed while the belt is already moving, so nothing can start the belt remotely by accident.
+# 作者實機目前把這組腳本放在 /config/scripts.yaml，內容與此 package 相同；
+# 建議仍用本檔複製到 /config/packages/，與課表 package 一起管理。
 script:
   treadmill_toggle:
     alias: "走步機 開始/暫停"

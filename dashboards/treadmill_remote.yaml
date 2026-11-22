@@ -1,94 +1,3527 @@
-# Dashboard export (lovelace.treadmill_remote). Create a new dashboard, open the Raw configuration editor and paste this.
+# Dashboard export (lovelace.treadmill-remote, 2026-11-22).
+# 新增儀表板時，URL 路徑請設成 `treadmill-remote`（設定子頁會導向 /treadmill-remote/custom，返回主頁為 /treadmill-remote/remote）。
+# 需要 HACS 自訂卡片 button-card（實測 7.0.1）。貼到「原始設定編輯器」。
+# 主頁 path: remote；設定子頁 path: custom（暖身／快走／緩和／收操／輪數，+/- 按鈕；儲存只是返回主頁，數值在按 +/- 時已寫入輔助元件）。
 title: 走步機
 views:
-- title: 遙控器
+- title: 走步機
   path: remote
-  icon: mdi:remote
+  icon: mdi:walk
   type: panel
   cards:
-  - type: vertical-stack
-    cards:
-    - type: glance
-      title: 走步機
-      columns: 4
-      show_name: true
-      show_state: true
-      entities:
-      - entity: sensor.treadmill_speed
-        name: 速度
-      - entity: sensor.treadmill_inclination
-        name: 坡度
-      - entity: sensor.treadmill_time_elapsed
-        name: 時間
-      - entity: sensor.treadmill_distance_total
-        name: 距離
-    - type: button
-      entity: script.treadmill_toggle
-      name: 開始 / 暫停
-      icon: mdi:play-pause
-      show_state: false
-      icon_height: 56px
-      tap_action:
-        action: perform-action
-        perform_action: script.treadmill_toggle
-      hold_action:
-        action: none
-    - type: grid
-      columns: 2
-      square: false
-      cards:
-      - type: button
-        entity: script.treadmill_speed_up
-        name: 速度 +
-        icon: mdi:chevron-double-up
-        show_state: false
-        icon_height: 56px
-        tap_action:
-          action: perform-action
-          perform_action: script.treadmill_speed_up
-        hold_action:
-          action: none
-      - type: button
-        entity: script.treadmill_incline_up
-        name: 坡度 +
-        icon: mdi:slope-uphill
-        show_state: false
-        icon_height: 56px
-        tap_action:
-          action: perform-action
-          perform_action: script.treadmill_incline_up
-        hold_action:
-          action: none
-      - type: button
-        entity: script.treadmill_speed_down
-        name: 速度 −
-        icon: mdi:chevron-double-down
-        show_state: false
-        icon_height: 56px
-        tap_action:
-          action: perform-action
-          perform_action: script.treadmill_speed_down
-        hold_action:
-          action: none
-      - type: button
-        entity: script.treadmill_incline_down
-        name: 坡度 −
-        icon: mdi:slope-downhill
-        show_state: false
-        icon_height: 56px
-        tap_action:
-          action: perform-action
-          perform_action: script.treadmill_incline_down
-        hold_action:
-          action: none
-    - type: button
-      entity: script.treadmill_stop
-      name: 停止
-      icon: mdi:stop-circle
-      show_state: false
-      icon_height: 56px
-      tap_action:
-        action: perform-action
-        perform_action: script.treadmill_stop
-      hold_action:
-        action: none
+  - type: custom:button-card
+    show_icon: false
+    show_name: false
+    show_state: false
+    show_label: false
+    tap_action:
+      action: none
+    hold_action:
+      action: none
+    double_tap_action:
+      action: none
+    triggers_update:
+    - sun.sun
+    extra_styles: ":host { display: block; width: 100%; } ha-ripple, mwc-ripple { display:\
+      \ none !important; } #container > div { min-width: 0; min-height: 0; } #container >\
+      \ div > button-card, #container > div > hui-picture-entity-card { display: block; height:\
+      \ 100%; min-height: 0; } @supports not (height: 100dvh) { ha-card { height: calc(100vh\
+      \ - var(--header-height, 56px) - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom,\
+      \ 0px)) !important; } }"
+    custom_fields:
+      spd:
+        card:
+          type: custom:button-card
+          show_icon: false
+          show_name: false
+          show_state: false
+          show_label: false
+          tap_action:
+            action: none
+          hold_action:
+            action: none
+          double_tap_action:
+            action: none
+          triggers_update:
+          - sensor.treadmill_speed
+          extra_styles: "ha-ripple, mwc-ripple { display: none !important; } #container >\
+            \ div { min-width: 0; min-height: 0; } #container > div > button-card, #container\
+            \ > div > hui-picture-entity-card { display: block; height: 100%; min-height:\
+            \ 0; }"
+          custom_fields:
+            up:
+              card:
+                type: custom:button-card
+                name: 加速
+                icon: mdi:plus-thick
+                show_icon: false
+                show_name: false
+                show_state: false
+                show_label: false
+                tap_action:
+                  action: perform-action
+                  perform_action: script.treadmill_speed_up
+                  haptic: light
+                hold_action:
+                  action: none
+                double_tap_action:
+                  action: none
+                extra_styles: "ha-card { transition: transform 120ms ease, filter 120ms ease,\
+                  \ background-color 160ms ease; -webkit-tap-highlight-color: transparent;\
+                  \ } ha-card:active { transform: scale(0.98); filter: brightness(1.08); }"
+                custom_fields:
+                  lbl: "[[[ return \"<ha-icon icon=\\\"mdi:plus-thick\\\" style=\\\"--mdc-icon-size:24px;width:24px;height:24px;margin:0;flex:none;\\\
+                    \"></ha-icon><span>加速</span>\"; ]]]"
+                styles:
+                  card:
+                  - height: 100%
+                  - box-sizing: border-box
+                  - padding: '0'
+                  - margin: '0'
+                  - background: var(--mlh-training-tint)
+                  - color: var(--mlh-training)
+                  - border: none
+                  - border-radius: 12px
+                  - box-shadow: none
+                  grid:
+                  - grid-template-areas: "\"lbl\""
+                  - grid-template-columns: minmax(0, 1fr)
+                  - grid-template-rows: 1fr
+                  - height: 100%
+                  custom_fields:
+                    lbl:
+                    - display: flex
+                    - align-items: center
+                    - justify-content: center
+                    - gap: 6px
+                    - font-size: 17px
+                    - font-weight: '700'
+                    - white-space: nowrap
+              do_not_eval: true
+            val: "[[[ const sensor = \"sensor.treadmill_speed\"; const caption = \"速度\"; const\
+              \ unit = \"km/h\"; const digits = 1; const accent = \"var(--mlh-training)\"\
+              ; const fg = \"var(--mlh-fg)\"; const muted = \"var(--mlh-muted)\"; const s\
+              \ = states[sensor]; const v = s ? String(s.state).trim() : ''; const n = Number(v);\
+              \ const ok = !(v === '' || v === 'unknown' || v === 'unavailable' || !Number.isFinite(n));\
+              \ return '<div style=\"display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;line-height:1\"\
+              >' + '<span style=\"font-size:13px;font-weight:700;letter-spacing:0.04em;color:'\
+              \ + accent + '\">' + caption + '</span>' + '<span style=\"margin-top:6px;font-size:clamp(38px,\
+              \ 6vh, 56px);font-weight:700;letter-spacing:-0.03em;font-variant-numeric:tabular-nums;color:'\
+              \ + (ok ? fg : muted) + '\">' + (ok ? n.toFixed(digits) : '—') + '</span>' +\
+              \ '<span style=\"margin-top:4px;font-size:13px;font-weight:500;color:' + muted\
+              \ + '\">' + unit + '</span></div>'; ]]]"
+            down:
+              card:
+                type: custom:button-card
+                name: 減速
+                icon: mdi:minus-thick
+                show_icon: false
+                show_name: false
+                show_state: false
+                show_label: false
+                tap_action:
+                  action: perform-action
+                  perform_action: script.treadmill_speed_down
+                  haptic: light
+                hold_action:
+                  action: none
+                double_tap_action:
+                  action: none
+                extra_styles: "ha-card { transition: transform 120ms ease, filter 120ms ease,\
+                  \ background-color 160ms ease; -webkit-tap-highlight-color: transparent;\
+                  \ } ha-card:active { transform: scale(0.98); filter: brightness(1.08); }"
+                custom_fields:
+                  lbl: "[[[ return \"<ha-icon icon=\\\"mdi:minus-thick\\\" style=\\\"--mdc-icon-size:24px;width:24px;height:24px;margin:0;flex:none;\\\
+                    \"></ha-icon><span>減速</span>\"; ]]]"
+                styles:
+                  card:
+                  - height: 100%
+                  - box-sizing: border-box
+                  - padding: '0'
+                  - margin: '0'
+                  - background: var(--mlh-training-tint)
+                  - color: var(--mlh-training)
+                  - border: none
+                  - border-radius: 12px
+                  - box-shadow: none
+                  grid:
+                  - grid-template-areas: "\"lbl\""
+                  - grid-template-columns: minmax(0, 1fr)
+                  - grid-template-rows: 1fr
+                  - height: 100%
+                  custom_fields:
+                    lbl:
+                    - display: flex
+                    - align-items: center
+                    - justify-content: center
+                    - gap: 6px
+                    - font-size: 17px
+                    - font-weight: '700'
+                    - white-space: nowrap
+              do_not_eval: true
+          styles:
+            card:
+            - height: 100%
+            - box-sizing: border-box
+            - padding: 8px
+            - margin: '0'
+            - overflow: hidden
+            - cursor: default
+            - background: var(--mlh-card)
+            - border: 1px solid var(--mlh-border)
+            - border-radius: 16px
+            - box-shadow: none
+            - color: var(--mlh-fg)
+            - font-size: 14px
+            - font-weight: '400'
+            - text-align: left
+            grid:
+            - grid-template-areas: "\"up\" \"val\" \"down\""
+            - grid-template-columns: minmax(0, 1fr)
+            - grid-template-rows: minmax(0, 1fr) minmax(0, 1.55fr) minmax(0, 1fr)
+            - gap: 4px
+            - width: 100%
+            - height: 100%
+            - align-items: stretch
+            - justify-items: stretch
+            custom_fields:
+              up:
+              - grid-area: up
+              - min-width: '0'
+              - min-height: '0'
+              - overflow: visible
+              val:
+              - grid-area: val
+              - min-width: '0'
+              - min-height: '0'
+              - overflow: visible
+              - align-self: stretch
+              - justify-self: stretch
+              down:
+              - grid-area: down
+              - min-width: '0'
+              - min-height: '0'
+              - overflow: visible
+        do_not_eval: true
+      inc:
+        card:
+          type: custom:button-card
+          show_icon: false
+          show_name: false
+          show_state: false
+          show_label: false
+          tap_action:
+            action: none
+          hold_action:
+            action: none
+          double_tap_action:
+            action: none
+          triggers_update:
+          - sensor.treadmill_inclination
+          extra_styles: "ha-ripple, mwc-ripple { display: none !important; } #container >\
+            \ div { min-width: 0; min-height: 0; } #container > div > button-card, #container\
+            \ > div > hui-picture-entity-card { display: block; height: 100%; min-height:\
+            \ 0; }"
+          custom_fields:
+            up:
+              card:
+                type: custom:button-card
+                name: 上坡
+                icon: mdi:plus-thick
+                show_icon: false
+                show_name: false
+                show_state: false
+                show_label: false
+                tap_action:
+                  action: perform-action
+                  perform_action: script.treadmill_incline_up
+                  haptic: light
+                hold_action:
+                  action: none
+                double_tap_action:
+                  action: none
+                extra_styles: "ha-card { transition: transform 120ms ease, filter 120ms ease,\
+                  \ background-color 160ms ease; -webkit-tap-highlight-color: transparent;\
+                  \ } ha-card:active { transform: scale(0.98); filter: brightness(1.08); }"
+                custom_fields:
+                  lbl: "[[[ return \"<ha-icon icon=\\\"mdi:plus-thick\\\" style=\\\"--mdc-icon-size:24px;width:24px;height:24px;margin:0;flex:none;\\\
+                    \"></ha-icon><span>上坡</span>\"; ]]]"
+                styles:
+                  card:
+                  - height: 100%
+                  - box-sizing: border-box
+                  - padding: '0'
+                  - margin: '0'
+                  - background: var(--mlh-recovery-tint)
+                  - color: var(--mlh-recovery)
+                  - border: none
+                  - border-radius: 12px
+                  - box-shadow: none
+                  grid:
+                  - grid-template-areas: "\"lbl\""
+                  - grid-template-columns: minmax(0, 1fr)
+                  - grid-template-rows: 1fr
+                  - height: 100%
+                  custom_fields:
+                    lbl:
+                    - display: flex
+                    - align-items: center
+                    - justify-content: center
+                    - gap: 6px
+                    - font-size: 17px
+                    - font-weight: '700'
+                    - white-space: nowrap
+              do_not_eval: true
+            val: "[[[ const sensor = \"sensor.treadmill_inclination\"; const caption = \"\
+              坡度\"; const unit = \"%\"; const digits = 0; const accent = \"var(--mlh-recovery)\"\
+              ; const fg = \"var(--mlh-fg)\"; const muted = \"var(--mlh-muted)\"; const s\
+              \ = states[sensor]; const v = s ? String(s.state).trim() : ''; const n = Number(v);\
+              \ const ok = !(v === '' || v === 'unknown' || v === 'unavailable' || !Number.isFinite(n));\
+              \ return '<div style=\"display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;line-height:1\"\
+              >' + '<span style=\"font-size:13px;font-weight:700;letter-spacing:0.04em;color:'\
+              \ + accent + '\">' + caption + '</span>' + '<span style=\"margin-top:6px;font-size:clamp(38px,\
+              \ 6vh, 56px);font-weight:700;letter-spacing:-0.03em;font-variant-numeric:tabular-nums;color:'\
+              \ + (ok ? fg : muted) + '\">' + (ok ? n.toFixed(digits) : '—') + '</span>' +\
+              \ '<span style=\"margin-top:4px;font-size:13px;font-weight:500;color:' + muted\
+              \ + '\">' + unit + '</span></div>'; ]]]"
+            down:
+              card:
+                type: custom:button-card
+                name: 下坡
+                icon: mdi:minus-thick
+                show_icon: false
+                show_name: false
+                show_state: false
+                show_label: false
+                tap_action:
+                  action: perform-action
+                  perform_action: script.treadmill_incline_down
+                  haptic: light
+                hold_action:
+                  action: none
+                double_tap_action:
+                  action: none
+                extra_styles: "ha-card { transition: transform 120ms ease, filter 120ms ease,\
+                  \ background-color 160ms ease; -webkit-tap-highlight-color: transparent;\
+                  \ } ha-card:active { transform: scale(0.98); filter: brightness(1.08); }"
+                custom_fields:
+                  lbl: "[[[ return \"<ha-icon icon=\\\"mdi:minus-thick\\\" style=\\\"--mdc-icon-size:24px;width:24px;height:24px;margin:0;flex:none;\\\
+                    \"></ha-icon><span>下坡</span>\"; ]]]"
+                styles:
+                  card:
+                  - height: 100%
+                  - box-sizing: border-box
+                  - padding: '0'
+                  - margin: '0'
+                  - background: var(--mlh-recovery-tint)
+                  - color: var(--mlh-recovery)
+                  - border: none
+                  - border-radius: 12px
+                  - box-shadow: none
+                  grid:
+                  - grid-template-areas: "\"lbl\""
+                  - grid-template-columns: minmax(0, 1fr)
+                  - grid-template-rows: 1fr
+                  - height: 100%
+                  custom_fields:
+                    lbl:
+                    - display: flex
+                    - align-items: center
+                    - justify-content: center
+                    - gap: 6px
+                    - font-size: 17px
+                    - font-weight: '700'
+                    - white-space: nowrap
+              do_not_eval: true
+          styles:
+            card:
+            - height: 100%
+            - box-sizing: border-box
+            - padding: 8px
+            - margin: '0'
+            - overflow: hidden
+            - cursor: default
+            - background: var(--mlh-card)
+            - border: 1px solid var(--mlh-border)
+            - border-radius: 16px
+            - box-shadow: none
+            - color: var(--mlh-fg)
+            - font-size: 14px
+            - font-weight: '400'
+            - text-align: left
+            grid:
+            - grid-template-areas: "\"up\" \"val\" \"down\""
+            - grid-template-columns: minmax(0, 1fr)
+            - grid-template-rows: minmax(0, 1fr) minmax(0, 1.55fr) minmax(0, 1fr)
+            - gap: 4px
+            - width: 100%
+            - height: 100%
+            - align-items: stretch
+            - justify-items: stretch
+            custom_fields:
+              up:
+              - grid-area: up
+              - min-width: '0'
+              - min-height: '0'
+              - overflow: visible
+              val:
+              - grid-area: val
+              - min-width: '0'
+              - min-height: '0'
+              - overflow: visible
+              - align-self: stretch
+              - justify-self: stretch
+              down:
+              - grid-area: down
+              - min-width: '0'
+              - min-height: '0'
+              - overflow: visible
+        do_not_eval: true
+      time:
+        card:
+          type: custom:button-card
+          entity: sensor.treadmill_time_elapsed
+          name: 時間
+          show_icon: false
+          show_name: true
+          show_state: false
+          show_label: false
+          triggers_update:
+          - sensor.treadmill_time_elapsed
+          tap_action:
+            action: none
+          hold_action:
+            action: none
+          double_tap_action:
+            action: none
+          extra_styles: "ha-ripple, mwc-ripple { display: none !important; }"
+          custom_fields:
+            v: "[[[ const s = states['sensor.treadmill_time_elapsed']; const n = s ? Number(s.state)\
+              \ : NaN; if (!s || String(s.state).trim() === '' || !Number.isFinite(n) || n\
+              \ < 0) return '—'; const t = Math.round(n), h = Math.floor(t / 3600), m = Math.floor((t\
+              \ % 3600) / 60), sec = t % 60; const p = (x) => String(x).padStart(2, '0');\
+              \ return h > 0 ? h + ':' + p(m) + ':' + p(sec) : p(m) + ':' + p(sec); ]]]"
+          styles:
+            card:
+            - height: 100%
+            - box-sizing: border-box
+            - padding: 0 16px
+            - margin: '0'
+            - cursor: default
+            - background: var(--mlh-card)
+            - border: 1px solid var(--mlh-border)
+            - border-radius: 16px
+            - box-shadow: none
+            - color: var(--mlh-fg)
+            grid:
+            - grid-template-areas: "\"n v\""
+            - grid-template-columns: auto minmax(0, 1fr)
+            - grid-template-rows: 1fr
+            - align-items: center
+            - column-gap: 8px
+            name:
+            - justify-self: start
+            - font-size: 14px
+            - font-weight: '500'
+            - color: var(--mlh-muted)
+            custom_fields:
+              v:
+              - justify-self: end
+              - font-size: 24px
+              - font-weight: '700'
+              - color: var(--mlh-fg)
+              - font-variant-numeric: tabular-nums
+              - letter-spacing: -0.01em
+        do_not_eval: true
+      dist:
+        card:
+          type: custom:button-card
+          entity: sensor.treadmill_distance_total
+          name: 距離
+          show_icon: false
+          show_name: true
+          show_state: false
+          show_label: false
+          triggers_update:
+          - sensor.treadmill_distance_total
+          tap_action:
+            action: none
+          hold_action:
+            action: none
+          double_tap_action:
+            action: none
+          extra_styles: "ha-ripple, mwc-ripple { display: none !important; }"
+          custom_fields:
+            v: "[[[ const muted = \"var(--mlh-muted)\"; const s = states['sensor.treadmill_distance_total'];\
+              \ const n = s ? Number(s.state) : NaN; if (!s || String(s.state).trim() ===\
+              \ '' || !Number.isFinite(n) || n < 0) return '—'; return Math.round(n) + '<span\
+              \ style=\"font-size:13px;font-weight:500;margin-left:4px;color:' + muted + '\"\
+              >m</span>'; ]]]"
+          styles:
+            card:
+            - height: 100%
+            - box-sizing: border-box
+            - padding: 0 16px
+            - margin: '0'
+            - cursor: default
+            - background: var(--mlh-card)
+            - border: 1px solid var(--mlh-border)
+            - border-radius: 16px
+            - box-shadow: none
+            - color: var(--mlh-fg)
+            grid:
+            - grid-template-areas: "\"n v\""
+            - grid-template-columns: auto minmax(0, 1fr)
+            - grid-template-rows: 1fr
+            - align-items: center
+            - column-gap: 8px
+            name:
+            - justify-self: start
+            - font-size: 14px
+            - font-weight: '500'
+            - color: var(--mlh-muted)
+            custom_fields:
+              v:
+              - justify-self: end
+              - font-size: 24px
+              - font-weight: '700'
+              - color: var(--mlh-fg)
+              - font-variant-numeric: tabular-nums
+              - letter-spacing: -0.01em
+        do_not_eval: true
+      prog:
+        card:
+          type: custom:button-card
+          show_icon: false
+          show_name: false
+          show_state: false
+          show_label: false
+          tap_action:
+            action: none
+          hold_action:
+            action: none
+          double_tap_action:
+            action: none
+          triggers_update:
+          - sensor.training_state_display
+          - input_select.training_state
+          - input_text.training_phase
+          - sensor.training_round_display
+          - sensor.training_segment_remaining_mmss
+          - sensor.training_remaining_mmss
+          - sensor.training_elapsed_mmss
+          extra_styles: "ha-ripple, mwc-ripple { display: none !important; } #container >\
+            \ div { min-width: 0; min-height: 0; } #container > div > button-card, #container\
+            \ > div > hui-picture-entity-card { display: block; height: 100%; min-height:\
+            \ 0; }"
+          custom_fields:
+            head: "[[[ const na = ['unavailable', 'unknown', '']; const g = (e) => (states[e]\
+              \ ? String(states[e].state).trim() : ''); const state = g('input_select.training_state');\
+              \ const label = g('sensor.training_state_display').replace(/（[^）]*）/g, '');\
+              \ const phase = g('input_text.training_phase'); const round = g('sensor.training_round_display');\
+              \ const tone = state === 'running' ? ['var(--mlh-body)', 'var(--mlh-body-tint)']\
+              \ : state === 'paused' ? ['var(--mlh-caution)', 'color-mix(in srgb, var(--mlh-caution)\
+              \ 16%, transparent)'] : ['starting', 'resuming', 'finishing'].includes(state)\
+              \ ? ['var(--mlh-primary)', 'var(--mlh-brand-tint)'] : ['var(--mlh-muted)', 'var(--mlh-surface2)'];\
+              \ const v = (x) => (na.includes(x) ? '—' : x); const k = (t) => '<span style=\"\
+              flex:none;color:var(--mlh-muted);font-weight:500;margin-right:8px\">' + t +\
+              \ '</span>'; const b = (t) => '<span style=\"min-width:0;overflow:hidden;text-overflow:ellipsis;color:var(--mlh-fg);font-weight:700\"\
+              >' + t + '</span>'; const chip = '<span style=\"flex:none;display:inline-flex;align-items:center;gap:6px;padding:3px\
+              \ 10px;border-radius:999px;font-weight:700;color:' + tone[0] + ';background:'\
+              \ + tone[1] + '\">' + '<span style=\"width:7px;height:7px;border-radius:50%;background:'\
+              \ + tone[0] + '\"></span>' + v(label) + '</span>'; const line = 'display:flex;align-items:center;min-width:0;white-space:nowrap;font-size:14px;line-height:22px';\
+              \ return '<div style=\"' + line + ';justify-content:space-between;gap:12px\"\
+              >' + chip + '<span style=\"display:flex;min-width:0\">' + k('輪數') + b(v(round))\
+              \ + '</span></div>' + '<div style=\"' + line + ';margin-top:6px;font-size:15px\"\
+              >' + k('階段') + b(v(phase)) + '</div>'; ]]]"
+            seg: "[[[ const s = states['sensor.training_segment_remaining_mmss']; const v\
+              \ = s ? String(s.state).trim() : ''; const ok = !['unavailable', 'unknown',\
+              \ ''].includes(v); return '<div style=\"display:flex;flex-direction:column;align-items:flex-start;justify-content:center;height:100%;white-space:nowrap;text-align:left\"\
+              >' + '<span style=\"font-size:13px;font-weight:500;line-height:1;color:var(--mlh-muted)\"\
+              >本段剩餘</span>' + '<span style=\"margin-top:6px;font-size:clamp(34px, 5.4vh, 50px);font-weight:700;line-height:1;letter-spacing:-0.02em;font-variant-numeric:tabular-nums;color:'\
+              \ + (ok ? 'var(--mlh-fg)' : 'var(--mlh-muted)') + '\">' + (ok ? v : '--:--')\
+              \ + '</span></div>'; ]]]"
+            tot_l: "[[[ return \"<span style=\\\"font-size:13px;font-weight:500;color:var(--mlh-muted)\\\
+              \">總剩餘</span>\"; ]]]"
+            tot: "[[[ const id = \"sensor.training_remaining_mmss\"; const size = \"24px\"\
+              ; const weight = \"700\"; const fg = \"var(--mlh-fg)\"; const muted = \"var(--mlh-muted)\"\
+              ; const s = states[id]; const v = s ? String(s.state).trim() : ''; const ok\
+              \ = !['unavailable', 'unknown', ''].includes(v); return '<span style=\"white-space:nowrap;font-size:'\
+              \ + size + ';font-weight:' + weight + ';line-height:1;letter-spacing:-0.02em;font-variant-numeric:tabular-nums;color:'\
+              \ + (ok ? fg : muted) + '\">' + (ok ? v : '--:--') + '</span>'; ]]]"
+            ela_l: "[[[ return \"<span style=\\\"font-size:13px;font-weight:500;color:var(--mlh-muted)\\\
+              \">已進行</span>\"; ]]]"
+            ela: "[[[ const id = \"sensor.training_elapsed_mmss\"; const size = \"24px\";\
+              \ const weight = \"700\"; const fg = \"var(--mlh-fg)\"; const muted = \"var(--mlh-muted)\"\
+              ; const s = states[id]; const v = s ? String(s.state).trim() : ''; const ok\
+              \ = !['unavailable', 'unknown', ''].includes(v); return '<span style=\"white-space:nowrap;font-size:'\
+              \ + size + ';font-weight:' + weight + ';line-height:1;letter-spacing:-0.02em;font-variant-numeric:tabular-nums;color:'\
+              \ + (ok ? fg : muted) + '\">' + (ok ? v : '--:--') + '</span>'; ]]]"
+            bar: "[[[ const sec = (id) => { const s = states[id]; const parts = s ? String(s.state).trim().split(':').map(Number)\
+              \ : []; if (!parts.length || parts.some((x) => !Number.isFinite(x))) return\
+              \ 0; return parts.reduce((total, x) => total * 60 + x, 0); }; const done = sec('sensor.training_elapsed_mmss'),\
+              \ left = sec('sensor.training_remaining_mmss'); const p = done + left > 0 ?\
+              \ Math.min(100, Math.max(0, done / (done + left) * 100)) : 0; return '<div style=\"\
+              height:4px;border-radius:2px;background:color-mix(in srgb, var(--mlh-fg) 12%,\
+              \ transparent);overflow:hidden\"><div style=\"width:' + p.toFixed(1) + '%;height:100%;border-radius:2px;background:var(--mlh-body)\"\
+              ></div></div>'; ]]]"
+          styles:
+            card:
+            - height: 100%
+            - box-sizing: border-box
+            - padding: 12px 16px 14px
+            - margin: '0'
+            - overflow: hidden
+            - cursor: default
+            - background: var(--mlh-card)
+            - border: 1px solid var(--mlh-border)
+            - border-radius: 16px
+            - box-shadow: none
+            - color: var(--mlh-fg)
+            - font-size: 14px
+            - font-weight: '400'
+            - text-align: left
+            grid:
+            - grid-template-areas: "\"head head head\" \"seg tot_l tot\" \"seg ela_l ela\"\
+                \ \"bar bar bar\""
+            - grid-template-columns: minmax(0, 1.15fr) auto minmax(0, 1fr)
+            - grid-template-rows: auto minmax(0, 1fr) minmax(0, 1fr) auto
+            - gap: 4px 12px
+            - width: 100%
+            - height: 100%
+            - align-items: stretch
+            - justify-items: stretch
+            custom_fields:
+              head:
+              - grid-area: head
+              - min-width: '0'
+              - min-height: '0'
+              - overflow: visible
+              - align-self: start
+              - padding-bottom: 8px
+              - border-bottom: 1px solid var(--mlh-border)
+              - margin-bottom: 4px
+              seg:
+              - grid-area: seg
+              - min-width: '0'
+              - min-height: '0'
+              - overflow: visible
+              - align-self: stretch
+              - justify-self: start
+              tot_l:
+              - grid-area: tot_l
+              - min-width: '0'
+              - min-height: '0'
+              - overflow: visible
+              - align-self: end
+              - justify-self: start
+              - padding-bottom: 5px
+              tot:
+              - grid-area: tot
+              - min-width: '0'
+              - min-height: '0'
+              - overflow: visible
+              - align-self: end
+              - justify-self: end
+              - padding-bottom: 2px
+              ela_l:
+              - grid-area: ela_l
+              - min-width: '0'
+              - min-height: '0'
+              - overflow: visible
+              - align-self: start
+              - justify-self: start
+              - padding-top: 7px
+              ela:
+              - grid-area: ela
+              - min-width: '0'
+              - min-height: '0'
+              - overflow: visible
+              - align-self: start
+              - justify-self: end
+              - padding-top: 2px
+              bar:
+              - grid-area: bar
+              - min-width: '0'
+              - min-height: '0'
+              - overflow: visible
+              - align-self: end
+              - width: 100%
+              - padding-top: 4px
+        do_not_eval: true
+      run:
+        card:
+          type: custom:button-card
+          name: 開始
+          icon: mdi:play
+          show_icon: false
+          show_name: false
+          show_state: false
+          show_label: false
+          tap_action:
+            action: perform-action
+            perform_action: script.treadmill_remote_start
+            haptic: medium
+          hold_action:
+            action: none
+          double_tap_action:
+            action: none
+          extra_styles: "ha-card { transition: transform 120ms ease, filter 120ms ease, background-color\
+            \ 160ms ease; -webkit-tap-highlight-color: transparent; } ha-card:active { transform:\
+            \ scale(0.98); filter: brightness(1.08); }"
+          custom_fields:
+            lbl: "[[[ return \"<ha-icon icon=\\\"mdi:play\\\" style=\\\"--mdc-icon-size:28px;width:28px;height:28px;margin:0;flex:none;\\\
+              \"></ha-icon><span>開始</span>\"; ]]]"
+          styles:
+            card:
+            - height: 100%
+            - box-sizing: border-box
+            - padding: 0 16px
+            - margin: '0'
+            - background: var(--mlh-body)
+            - color: var(--mlh-on-solid)
+            - border: none
+            - border-radius: 16px
+            - box-shadow: none
+            grid:
+            - grid-template-areas: "\"lbl\""
+            - grid-template-columns: minmax(0, 1fr)
+            - grid-template-rows: 1fr
+            - height: 100%
+            custom_fields:
+              lbl:
+              - display: flex
+              - align-items: center
+              - justify-content: center
+              - gap: 8px
+              - font-size: 22px
+              - font-weight: '700'
+              - letter-spacing: 0.04em
+              - white-space: nowrap
+        do_not_eval: true
+      pause:
+        card:
+          type: custom:button-card
+          name: 暫停
+          icon: mdi:pause
+          show_icon: false
+          show_name: false
+          show_state: false
+          show_label: false
+          tap_action:
+            action: perform-action
+            perform_action: script.treadmill_remote_pause
+            haptic: medium
+          hold_action:
+            action: none
+          double_tap_action:
+            action: none
+          extra_styles: "ha-card { transition: transform 120ms ease, filter 120ms ease, background-color\
+            \ 160ms ease; -webkit-tap-highlight-color: transparent; } ha-card:active { transform:\
+            \ scale(0.98); filter: brightness(1.08); }"
+          custom_fields:
+            lbl: "[[[ return \"<ha-icon icon=\\\"mdi:pause\\\" style=\\\"--mdc-icon-size:24px;width:24px;height:24px;margin:0;flex:none;\\\
+              \"></ha-icon><span>暫停</span>\"; ]]]"
+          styles:
+            card:
+            - height: 100%
+            - box-sizing: border-box
+            - padding: 0 16px
+            - margin: '0'
+            - background: var(--mlh-card)
+            - color: var(--mlh-fg)
+            - border: 1px solid var(--mlh-border)
+            - border-radius: 16px
+            - box-shadow: none
+            grid:
+            - grid-template-areas: "\"lbl\""
+            - grid-template-columns: minmax(0, 1fr)
+            - grid-template-rows: 1fr
+            - height: 100%
+            custom_fields:
+              lbl:
+              - display: flex
+              - align-items: center
+              - justify-content: center
+              - gap: 8px
+              - font-size: 18px
+              - font-weight: '700'
+              - letter-spacing: 0.04em
+              - white-space: nowrap
+        do_not_eval: true
+      stop:
+        card:
+          type: custom:button-card
+          name: 停止
+          icon: mdi:stop
+          show_icon: false
+          show_name: false
+          show_state: false
+          show_label: false
+          tap_action:
+            action: perform-action
+            perform_action: script.treadmill_remote_stop
+            haptic: medium
+          hold_action:
+            action: none
+          double_tap_action:
+            action: none
+          extra_styles: "ha-card { transition: transform 120ms ease, filter 120ms ease, background-color\
+            \ 160ms ease; -webkit-tap-highlight-color: transparent; } ha-card:active { transform:\
+            \ scale(0.98); filter: brightness(1.08); }"
+          custom_fields:
+            lbl: "[[[ return \"<ha-icon icon=\\\"mdi:stop\\\" style=\\\"--mdc-icon-size:24px;width:24px;height:24px;margin:0;flex:none;\\\
+              \"></ha-icon><span>停止</span>\"; ]]]"
+          styles:
+            card:
+            - height: 100%
+            - box-sizing: border-box
+            - padding: 0 16px
+            - margin: '0'
+            - background: var(--mlh-danger)
+            - color: var(--mlh-on-solid)
+            - border: none
+            - border-radius: 16px
+            - box-shadow: none
+            grid:
+            - grid-template-areas: "\"lbl\""
+            - grid-template-columns: minmax(0, 1fr)
+            - grid-template-rows: 1fr
+            - height: 100%
+            custom_fields:
+              lbl:
+              - display: flex
+              - align-items: center
+              - justify-content: center
+              - gap: 8px
+              - font-size: 18px
+              - font-weight: '700'
+              - letter-spacing: 0.04em
+              - white-space: nowrap
+        do_not_eval: true
+      hiit:
+        card:
+          type: custom:button-card
+          entity: input_boolean.training_hiit
+          name: HIIT
+          icon: mdi:run-fast
+          show_icon: true
+          show_name: true
+          show_state: false
+          show_label: false
+          triggers_update:
+          - input_boolean.training_hiit
+          - input_select.training_state
+          tap_action:
+            action: "[[[ const ts = states['input_select.training_state']; return (ts && ['starting',\
+              \ 'running', 'paused', 'resuming', 'finishing'].includes(ts.state)) ? 'none'\
+              \ : 'toggle'; ]]]"
+            haptic: selection
+          hold_action:
+            action: none
+          double_tap_action:
+            action: none
+          extra_styles: "ha-card { transition: transform 120ms ease, filter 120ms ease, background-color\
+            \ 160ms ease; -webkit-tap-highlight-color: transparent; } ha-card:active { transform:\
+            \ scale(0.98); filter: brightness(1.08); }"
+          custom_fields:
+            sw: "[[[ const on = entity && entity.state === 'on'; return '<div style=\"width:40px;height:24px;border-radius:999px;box-sizing:border-box;padding:3px;display:flex;justify-content:'\
+              \ + (on ? 'flex-end' : 'flex-start') + ';background:' + (on ? 'var(--mlh-nutrition)'\
+              \ : 'color-mix(in srgb, var(--mlh-fg) 16%, transparent)') + '\"><div style=\"\
+              width:18px;height:18px;border-radius:50%;background:' + (on ? 'var(--mlh-on-solid)'\
+              \ : 'var(--mlh-muted)') + '\"></div></div>'; ]]]"
+          styles:
+            card:
+            - height: 100%
+            - box-sizing: border-box
+            - padding: 0 16px
+            - margin: '0'
+            - border-radius: 16px
+            - box-shadow: none
+            - color: var(--mlh-fg)
+            - background: "[[[ return (entity && entity.state === 'on') ? 'var(--mlh-nutrition-tint)'\
+                \ : 'var(--mlh-card)'; ]]]"
+            - border: "[[[ return (entity && entity.state === 'on') ? '1px solid color-mix(in\
+                \ srgb, var(--mlh-nutrition) 40%, transparent)' : '1px solid var(--mlh-border)';\
+                \ ]]]"
+            - opacity: "[[[ const ts = states['input_select.training_state']; const locked\
+                \ = ts && ['starting', 'running', 'paused', 'resuming', 'finishing'].includes(ts.state);\
+                \ return locked ? '0.55' : '1'; ]]]"
+            grid:
+            - grid-template-areas: "\"i n sw\""
+            - grid-template-columns: 24px minmax(0, 1fr) auto
+            - grid-template-rows: 1fr
+            - column-gap: 10px
+            - align-items: center
+            img_cell:
+            - width: 24px
+            - height: 24px
+            icon:
+            - width: 22px
+            - height: 22px
+            - color: "[[[ return (entity && entity.state === 'on') ? 'var(--mlh-nutrition)'\
+                \ : 'var(--mlh-muted)'; ]]]"
+            name:
+            - justify-self: start
+            - font-size: 17px
+            - font-weight: '700'
+            - letter-spacing: 0.04em
+            - color: var(--mlh-fg)
+            custom_fields:
+              sw:
+              - justify-self: end
+        do_not_eval: true
+      set:
+        card:
+          type: custom:button-card
+          name: 設定
+          icon: mdi:tune-variant
+          show_icon: true
+          show_name: true
+          show_state: false
+          show_label: false
+          tap_action:
+            action: navigate
+            navigation_path: /treadmill-remote/custom
+            haptic: light
+          hold_action:
+            action: none
+          double_tap_action:
+            action: none
+          extra_styles: "ha-card { transition: transform 120ms ease, filter 120ms ease, background-color\
+            \ 160ms ease; -webkit-tap-highlight-color: transparent; } ha-card:active { transform:\
+            \ scale(0.98); filter: brightness(1.08); }"
+          custom_fields:
+            go: "[[[ return \"<ha-icon icon=\\\"mdi:chevron-right\\\" style=\\\"--mdc-icon-size:22px;width:22px;height:22px;margin:0;flex:none;color:var(--mlh-muted)\\\
+              \"></ha-icon>\"; ]]]"
+          styles:
+            card:
+            - height: 100%
+            - box-sizing: border-box
+            - padding: 0 12px 0 16px
+            - margin: '0'
+            - background: var(--mlh-card)
+            - border: 1px solid var(--mlh-border)
+            - border-radius: 16px
+            - box-shadow: none
+            - color: var(--mlh-fg)
+            grid:
+            - grid-template-areas: "\"i n go\""
+            - grid-template-columns: 24px minmax(0, 1fr) auto
+            - grid-template-rows: 1fr
+            - column-gap: 10px
+            - align-items: center
+            img_cell:
+            - width: 24px
+            - height: 24px
+            icon:
+            - width: 22px
+            - height: 22px
+            - color: var(--mlh-muted)
+            name:
+            - justify-self: start
+            - font-size: 17px
+            - font-weight: '700'
+            - letter-spacing: 0.04em
+            - color: var(--mlh-fg)
+            custom_fields:
+              go:
+              - justify-self: end
+              - display: flex
+        do_not_eval: true
+    styles:
+      card:
+      - height: calc(100dvh - var(--header-height, 56px) - env(safe-area-inset-top, 0px) -
+          env(safe-area-inset-bottom, 0px))
+      - box-sizing: border-box
+      - margin: '0'
+      - padding: 12px
+      - background: var(--mlh-bg)
+      - color: var(--mlh-fg)
+      - border: none
+      - border-radius: '0'
+      - box-shadow: none
+      - overflow: hidden
+      - cursor: default
+      - font-size: 14px
+      - font-weight: '400'
+      - letter-spacing: normal
+      - text-align: left
+      - --mlh-bg: "[[[ return (hass.themes && hass.themes.darkMode) ? '#141311' : '#f7f5f1';\
+          \ ]]]"
+      - --mlh-card: "[[[ return (hass.themes && hass.themes.darkMode) ? '#1f1d1a' : '#ffffff';\
+          \ ]]]"
+      - --mlh-fg: "[[[ return (hass.themes && hass.themes.darkMode) ? '#f2eee8' : '#1d1b18';\
+          \ ]]]"
+      - --mlh-muted: "[[[ return (hass.themes && hass.themes.darkMode) ? '#a8a097' : '#6a645c';\
+          \ ]]]"
+      - --mlh-border: "[[[ return (hass.themes && hass.themes.darkMode) ? '#34302b' : '#e4ded6';\
+          \ ]]]"
+      - --mlh-surface2: "[[[ return (hass.themes && hass.themes.darkMode) ? '#2a2723' : '#efebe5';\
+          \ ]]]"
+      - --mlh-primary: "[[[ return (hass.themes && hass.themes.darkMode) ? '#e2a777' : '#9a5b2e';\
+          \ ]]]"
+      - --mlh-on-primary: "[[[ return (hass.themes && hass.themes.darkMode) ? '#1d1b18' :\
+          \ '#ffffff'; ]]]"
+      - --mlh-brand-tint: "[[[ return (hass.themes && hass.themes.darkMode) ? '#3a2a1c' :\
+          \ '#f3e7da'; ]]]"
+      - --mlh-brand-ink: "[[[ return (hass.themes && hass.themes.darkMode) ? '#f3c9a3' : '#6f3f1d';\
+          \ ]]]"
+      - --mlh-recovery: "[[[ return (hass.themes && hass.themes.darkMode) ? '#7fb0f0' : '#2b62a8';\
+          \ ]]]"
+      - --mlh-recovery-tint: "[[[ return (hass.themes && hass.themes.darkMode) ? '#1c2a3d'\
+          \ : '#e6eef8'; ]]]"
+      - --mlh-training: "[[[ return (hass.themes && hass.themes.darkMode) ? '#f0a066' : '#b3541a';\
+          \ ]]]"
+      - --mlh-training-tint: "[[[ return (hass.themes && hass.themes.darkMode) ? '#3a2617'\
+          \ : '#f8ebe1'; ]]]"
+      - --mlh-body: "[[[ return (hass.themes && hass.themes.darkMode) ? '#6fc4ad' : '#2a7a68';\
+          \ ]]]"
+      - --mlh-body-tint: "[[[ return (hass.themes && hass.themes.darkMode) ? '#15302a' : '#e2f1ec';\
+          \ ]]]"
+      - --mlh-nutrition: "[[[ return (hass.themes && hass.themes.darkMode) ? '#b9a0ea' : '#7a5bb0';\
+          \ ]]]"
+      - --mlh-nutrition-tint: "[[[ return (hass.themes && hass.themes.darkMode) ? '#2a2240'\
+          \ : '#efe9f7'; ]]]"
+      - --mlh-danger: "[[[ return (hass.themes && hass.themes.darkMode) ? '#f08a80' : '#b23a3a';\
+          \ ]]]"
+      - --mlh-danger-tint: "[[[ return (hass.themes && hass.themes.darkMode) ? '#3a1d1b' :\
+          \ '#fbeaea'; ]]]"
+      - --mlh-on-solid: "[[[ return (hass.themes && hass.themes.darkMode) ? '#1d1b18' : '#ffffff';\
+          \ ]]]"
+      - --mlh-caution: "[[[ return (hass.themes && hass.themes.darkMode) ? '#e0b85a' : '#8a6a12';\
+          \ ]]]"
+      grid:
+      - grid-template-areas: "\"spd inc\" \"time dist\" \"prog prog\" \"run run\" \"pause\
+          \ stop\" \"hiit set\""
+      - grid-template-columns: minmax(0, 1fr) minmax(0, 1fr)
+      - grid-template-rows: minmax(0, 2.8fr) minmax(0, 0.6fr) minmax(0, 1.75fr) minmax(0,
+          0.8fr) minmax(0, 0.72fr) minmax(0, 0.62fr)
+      - gap: 8px
+      - width: 100%
+      - max-width: 520px
+      - margin: 0 auto
+      - height: 100%
+      - align-items: stretch
+      - justify-items: stretch
+      custom_fields:
+        spd:
+        - grid-area: spd
+        - min-width: '0'
+        - min-height: '0'
+        - overflow: visible
+        - align-self: stretch
+        - justify-self: stretch
+        inc:
+        - grid-area: inc
+        - min-width: '0'
+        - min-height: '0'
+        - overflow: visible
+        - align-self: stretch
+        - justify-self: stretch
+        time:
+        - grid-area: time
+        - min-width: '0'
+        - min-height: '0'
+        - overflow: visible
+        - align-self: stretch
+        - justify-self: stretch
+        dist:
+        - grid-area: dist
+        - min-width: '0'
+        - min-height: '0'
+        - overflow: visible
+        - align-self: stretch
+        - justify-self: stretch
+        prog:
+        - grid-area: prog
+        - min-width: '0'
+        - min-height: '0'
+        - overflow: visible
+        - align-self: stretch
+        - justify-self: stretch
+        run:
+        - grid-area: run
+        - min-width: '0'
+        - min-height: '0'
+        - overflow: visible
+        - align-self: stretch
+        - justify-self: stretch
+        pause:
+        - grid-area: pause
+        - min-width: '0'
+        - min-height: '0'
+        - overflow: visible
+        - align-self: stretch
+        - justify-self: stretch
+        stop:
+        - grid-area: stop
+        - min-width: '0'
+        - min-height: '0'
+        - overflow: visible
+        - align-self: stretch
+        - justify-self: stretch
+        hiit:
+        - grid-area: hiit
+        - min-width: '0'
+        - min-height: '0'
+        - overflow: visible
+        - align-self: stretch
+        - justify-self: stretch
+        set:
+        - grid-area: set
+        - min-width: '0'
+        - min-height: '0'
+        - overflow: visible
+        - align-self: stretch
+        - justify-self: stretch
+- title: 設定
+  path: custom
+  icon: mdi:tune-variant
+  type: panel
+  subview: true
+  back_path: /treadmill-remote/remote
+  cards:
+  - type: custom:button-card
+    show_icon: false
+    show_name: false
+    show_state: false
+    show_label: false
+    tap_action:
+      action: none
+    hold_action:
+      action: none
+    double_tap_action:
+      action: none
+    triggers_update:
+    - sun.sun
+    extra_styles: ":host { display: block; width: 100%; } ha-ripple, mwc-ripple { display:\
+      \ none !important; } #container > div { min-width: 0; min-height: 0; } #container >\
+      \ div > button-card, #container > div > hui-picture-entity-card { display: block; height:\
+      \ 100%; min-height: 0; } @supports not (height: 100dvh) { ha-card { height: calc(100vh\
+      \ - var(--header-height, 56px) - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom,\
+      \ 0px)) !important; } }"
+    custom_fields:
+      total:
+        card:
+          type: custom:button-card
+          entity: sensor.training_custom_total_mmss
+          name: 自訂總時長
+          icon: mdi:timer-sand
+          show_icon: true
+          show_name: true
+          show_state: false
+          show_label: false
+          tap_action:
+            action: none
+          hold_action:
+            action: none
+          double_tap_action:
+            action: none
+          extra_styles: "ha-ripple, mwc-ripple { display: none !important; }"
+          custom_fields:
+            v: "[[[ const v = entity ? String(entity.state) : ''; const ok = !['unavailable',\
+              \ 'unknown', ''].includes(v); return ok ? v : '--:--'; ]]]"
+          styles:
+            card:
+            - height: 100%
+            - box-sizing: border-box
+            - padding: 12px 14px
+            - margin: '0'
+            - cursor: default
+            - background: var(--mlh-card)
+            - border: 1px solid var(--mlh-border)
+            - border-radius: 16px
+            - box-shadow: none
+            - color: var(--mlh-fg)
+            grid:
+            - grid-template-areas: "\"i n\" \"v v\""
+            - grid-template-columns: 22px minmax(0, 1fr)
+            - grid-template-rows: auto minmax(0, 1fr)
+            - column-gap: 8px
+            - align-items: center
+            img_cell:
+            - width: 22px
+            - height: 22px
+            icon:
+            - width: 20px
+            - height: 20px
+            - color: var(--mlh-muted)
+            name:
+            - justify-self: start
+            - font-size: 14px
+            - font-weight: '500'
+            - color: var(--mlh-fg)
+            - white-space: nowrap
+            custom_fields:
+              v:
+              - justify-self: start
+              - align-self: end
+              - font-size: 30px
+              - font-weight: '700'
+              - line-height: '1.1'
+              - color: var(--mlh-fg)
+              - font-variant-numeric: tabular-nums
+              - letter-spacing: -0.01em
+        do_not_eval: true
+      rounds:
+        card:
+          type: custom:button-card
+          show_icon: false
+          show_name: false
+          show_state: false
+          show_label: false
+          tap_action:
+            action: none
+          hold_action:
+            action: none
+          double_tap_action:
+            action: none
+          triggers_update:
+          - input_number.training_custom_rounds
+          extra_styles: "ha-ripple, mwc-ripple { display: none !important; } #container >\
+            \ div { min-width: 0; min-height: 0; } #container > div > button-card, #container\
+            \ > div > hui-picture-entity-card { display: block; height: 100%; min-height:\
+            \ 0; }"
+          custom_fields:
+            title: "[[[ return \"<ha-icon icon=\\\"mdi:numeric\\\" style=\\\"--mdc-icon-size:20px;width:20px;height:20px;margin:0;flex:none;color:var(--mlh-muted)\\\
+              \"></ha-icon><span style=\\\"font-size:14px;font-weight:500;color:var(--mlh-fg)\\\
+              \">輪數</span>\"; ]]]"
+            m:
+              card:
+                type: custom:button-card
+                entity: input_number.training_custom_rounds
+                icon: mdi:minus
+                show_icon: true
+                show_name: false
+                show_state: false
+                show_label: false
+                tap_action:
+                  action: perform-action
+                  perform_action: input_number.decrement
+                  target:
+                    entity_id: input_number.training_custom_rounds
+                  haptic: light
+                hold_action:
+                  action: perform-action
+                  perform_action: input_number.decrement
+                  target:
+                    entity_id: input_number.training_custom_rounds
+                  repeat: 200
+                double_tap_action:
+                  action: none
+                extra_styles: "ha-card { transition: transform 120ms ease, filter 120ms ease,\
+                  \ background-color 160ms ease; -webkit-tap-highlight-color: transparent;\
+                  \ } ha-card:active { transform: scale(0.98); filter: brightness(1.08); }"
+                styles:
+                  card:
+                  - height: 46px
+                  - box-sizing: border-box
+                  - padding: '0'
+                  - margin: '0'
+                  - background: var(--mlh-surface2)
+                  - color: var(--mlh-fg)
+                  - border: none
+                  - border-radius: 999px
+                  - box-shadow: none
+                  - opacity: "[[[ const direction = -1; if (!entity) return '0.35'; const\
+                      \ n = Number(entity.state), limit = Number(direction > 0 ? entity.attributes.max\
+                      \ : entity.attributes.min); return Number.isFinite(n) && Number.isFinite(limit)\
+                      \ && (direction > 0 ? n >= limit : n <= limit) ? '0.35' : '1'; ]]]"
+                  grid:
+                  - grid-template-areas: "\"i\""
+                  - grid-template-columns: 1fr
+                  - grid-template-rows: 1fr
+                  - height: 100%
+                  img_cell:
+                  - width: 100%
+                  - height: 100%
+                  icon:
+                  - width: 22px
+                  - height: 22px
+                  - color: var(--mlh-fg)
+              do_not_eval: true
+            v: "[[[ const id = \"input_number.training_custom_rounds\"; const digits = 0;\
+              \ const size = \"30px\"; const fg = \"var(--mlh-fg)\"; const muted = \"var(--mlh-muted)\"\
+              ; const s = states[id]; const n = s ? Number(s.state) : NaN; const ok = s &&\
+              \ String(s.state).trim() !== '' && Number.isFinite(n); return '<span style=\"\
+              font-size:' + size + ';font-weight:700;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-0.01em;color:'\
+              \ + (ok ? fg : muted) + '\">' + (ok ? n.toFixed(digits) : '—') + '</span>';\
+              \ ]]]"
+            p:
+              card:
+                type: custom:button-card
+                entity: input_number.training_custom_rounds
+                icon: mdi:plus
+                show_icon: true
+                show_name: false
+                show_state: false
+                show_label: false
+                tap_action:
+                  action: perform-action
+                  perform_action: input_number.increment
+                  target:
+                    entity_id: input_number.training_custom_rounds
+                  haptic: light
+                hold_action:
+                  action: perform-action
+                  perform_action: input_number.increment
+                  target:
+                    entity_id: input_number.training_custom_rounds
+                  repeat: 200
+                double_tap_action:
+                  action: none
+                extra_styles: "ha-card { transition: transform 120ms ease, filter 120ms ease,\
+                  \ background-color 160ms ease; -webkit-tap-highlight-color: transparent;\
+                  \ } ha-card:active { transform: scale(0.98); filter: brightness(1.08); }"
+                styles:
+                  card:
+                  - height: 46px
+                  - box-sizing: border-box
+                  - padding: '0'
+                  - margin: '0'
+                  - background: var(--mlh-surface2)
+                  - color: var(--mlh-fg)
+                  - border: none
+                  - border-radius: 999px
+                  - box-shadow: none
+                  - opacity: "[[[ const direction = 1; if (!entity) return '0.35'; const n\
+                      \ = Number(entity.state), limit = Number(direction > 0 ? entity.attributes.max\
+                      \ : entity.attributes.min); return Number.isFinite(n) && Number.isFinite(limit)\
+                      \ && (direction > 0 ? n >= limit : n <= limit) ? '0.35' : '1'; ]]]"
+                  grid:
+                  - grid-template-areas: "\"i\""
+                  - grid-template-columns: 1fr
+                  - grid-template-rows: 1fr
+                  - height: 100%
+                  img_cell:
+                  - width: 100%
+                  - height: 100%
+                  icon:
+                  - width: 22px
+                  - height: 22px
+                  - color: var(--mlh-fg)
+              do_not_eval: true
+          styles:
+            card:
+            - height: 100%
+            - box-sizing: border-box
+            - padding: 12px 14px
+            - margin: '0'
+            - overflow: hidden
+            - cursor: default
+            - background: var(--mlh-card)
+            - border: 1px solid var(--mlh-border)
+            - border-radius: 16px
+            - box-shadow: none
+            - color: var(--mlh-fg)
+            - font-size: 14px
+            - font-weight: '400'
+            - text-align: left
+            grid:
+            - grid-template-areas: "\"title title title\" \"m v p\""
+            - grid-template-columns: 44px minmax(0, 1fr) 44px
+            - grid-template-rows: auto minmax(0, 1fr)
+            - gap: 4px 0
+            - width: 100%
+            - height: 100%
+            - align-items: stretch
+            - justify-items: stretch
+            custom_fields:
+              title:
+              - grid-area: title
+              - min-width: '0'
+              - min-height: '0'
+              - overflow: visible
+              - display: flex
+              - align-items: center
+              - gap: 8px
+              - justify-self: start
+              m:
+              - grid-area: m
+              - min-width: '0'
+              - min-height: '0'
+              - overflow: visible
+              - align-self: end
+              v:
+              - grid-area: v
+              - min-width: '0'
+              - min-height: '0'
+              - overflow: visible
+              - align-self: end
+              - justify-self: center
+              - padding-bottom: 8px
+              p:
+              - grid-area: p
+              - min-width: '0'
+              - min-height: '0'
+              - overflow: visible
+              - align-self: end
+        do_not_eval: true
+      ph1:
+        card:
+          type: custom:button-card
+          show_icon: false
+          show_name: false
+          show_state: false
+          show_label: false
+          tap_action:
+            action: none
+          hold_action:
+            action: none
+          double_tap_action:
+            action: none
+          triggers_update:
+          - input_number.training_custom_warmup_dur
+          - input_number.training_custom_warmup_speed
+          - input_number.training_custom_warmup_incline
+          extra_styles: "ha-ripple, mwc-ripple { display: none !important; } #container >\
+            \ div { min-width: 0; min-height: 0; } #container > div > button-card, #container\
+            \ > div > hui-picture-entity-card { display: block; height: 100%; min-height:\
+            \ 0; }"
+          custom_fields:
+            title: "[[[ return \"<span style=\\\"display:inline-flex;align-items:center;gap:8px;font-size:15px;font-weight:700;line-height:22px;color:var(--mlh-fg)\\\
+              \"><span style=\\\"display:inline-block;width:4px;height:15px;border-radius:2px;background:var(--mlh-primary)\\\
+              \"></span>暖身</span>\"; ]]]"
+            l1: "[[[ return \"<span style=\\\"font-size:13px;font-weight:500;color:var(--mlh-fg)\\\
+              \">時間</span><span style=\\\"font-size:12px;font-weight:500;margin-left:6px;color:var(--mlh-muted)\\\
+              \">秒</span>\"; ]]]"
+            m1:
+              card:
+                type: custom:button-card
+                entity: input_number.training_custom_warmup_dur
+                icon: mdi:minus
+                show_icon: true
+                show_name: false
+                show_state: false
+                show_label: false
+                tap_action:
+                  action: perform-action
+                  perform_action: input_number.decrement
+                  target:
+                    entity_id: input_number.training_custom_warmup_dur
+                  haptic: light
+                hold_action:
+                  action: perform-action
+                  perform_action: input_number.decrement
+                  target:
+                    entity_id: input_number.training_custom_warmup_dur
+                  repeat: 200
+                double_tap_action:
+                  action: none
+                extra_styles: "ha-card { transition: transform 120ms ease, filter 120ms ease,\
+                  \ background-color 160ms ease; -webkit-tap-highlight-color: transparent;\
+                  \ } ha-card:active { transform: scale(0.98); filter: brightness(1.08); }"
+                styles:
+                  card:
+                  - height: 46px
+                  - box-sizing: border-box
+                  - padding: '0'
+                  - margin: '0'
+                  - background: var(--mlh-surface2)
+                  - color: var(--mlh-fg)
+                  - border: none
+                  - border-radius: 999px
+                  - box-shadow: none
+                  - opacity: "[[[ const direction = -1; if (!entity) return '0.35'; const\
+                      \ n = Number(entity.state), limit = Number(direction > 0 ? entity.attributes.max\
+                      \ : entity.attributes.min); return Number.isFinite(n) && Number.isFinite(limit)\
+                      \ && (direction > 0 ? n >= limit : n <= limit) ? '0.35' : '1'; ]]]"
+                  grid:
+                  - grid-template-areas: "\"i\""
+                  - grid-template-columns: 1fr
+                  - grid-template-rows: 1fr
+                  - height: 100%
+                  img_cell:
+                  - width: 100%
+                  - height: 100%
+                  icon:
+                  - width: 22px
+                  - height: 22px
+                  - color: var(--mlh-fg)
+              do_not_eval: true
+            v1: "[[[ const id = \"input_number.training_custom_warmup_dur\"; const digits\
+              \ = 0; const size = \"21px\"; const fg = \"var(--mlh-fg)\"; const muted = \"\
+              var(--mlh-muted)\"; const s = states[id]; const n = s ? Number(s.state) : NaN;\
+              \ const ok = s && String(s.state).trim() !== '' && Number.isFinite(n); return\
+              \ '<span style=\"font-size:' + size + ';font-weight:700;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-0.01em;color:'\
+              \ + (ok ? fg : muted) + '\">' + (ok ? n.toFixed(digits) : '—') + '</span>';\
+              \ ]]]"
+            p1:
+              card:
+                type: custom:button-card
+                entity: input_number.training_custom_warmup_dur
+                icon: mdi:plus
+                show_icon: true
+                show_name: false
+                show_state: false
+                show_label: false
+                tap_action:
+                  action: perform-action
+                  perform_action: input_number.increment
+                  target:
+                    entity_id: input_number.training_custom_warmup_dur
+                  haptic: light
+                hold_action:
+                  action: perform-action
+                  perform_action: input_number.increment
+                  target:
+                    entity_id: input_number.training_custom_warmup_dur
+                  repeat: 200
+                double_tap_action:
+                  action: none
+                extra_styles: "ha-card { transition: transform 120ms ease, filter 120ms ease,\
+                  \ background-color 160ms ease; -webkit-tap-highlight-color: transparent;\
+                  \ } ha-card:active { transform: scale(0.98); filter: brightness(1.08); }"
+                styles:
+                  card:
+                  - height: 46px
+                  - box-sizing: border-box
+                  - padding: '0'
+                  - margin: '0'
+                  - background: var(--mlh-surface2)
+                  - color: var(--mlh-fg)
+                  - border: none
+                  - border-radius: 999px
+                  - box-shadow: none
+                  - opacity: "[[[ const direction = 1; if (!entity) return '0.35'; const n\
+                      \ = Number(entity.state), limit = Number(direction > 0 ? entity.attributes.max\
+                      \ : entity.attributes.min); return Number.isFinite(n) && Number.isFinite(limit)\
+                      \ && (direction > 0 ? n >= limit : n <= limit) ? '0.35' : '1'; ]]]"
+                  grid:
+                  - grid-template-areas: "\"i\""
+                  - grid-template-columns: 1fr
+                  - grid-template-rows: 1fr
+                  - height: 100%
+                  img_cell:
+                  - width: 100%
+                  - height: 100%
+                  icon:
+                  - width: 22px
+                  - height: 22px
+                  - color: var(--mlh-fg)
+              do_not_eval: true
+            l2: "[[[ return \"<span style=\\\"font-size:13px;font-weight:500;color:var(--mlh-fg)\\\
+              \">速度</span><span style=\\\"font-size:12px;font-weight:500;margin-left:6px;color:var(--mlh-muted)\\\
+              \">km/h</span>\"; ]]]"
+            m2:
+              card:
+                type: custom:button-card
+                entity: input_number.training_custom_warmup_speed
+                icon: mdi:minus
+                show_icon: true
+                show_name: false
+                show_state: false
+                show_label: false
+                tap_action:
+                  action: perform-action
+                  perform_action: input_number.decrement
+                  target:
+                    entity_id: input_number.training_custom_warmup_speed
+                  haptic: light
+                hold_action:
+                  action: perform-action
+                  perform_action: input_number.decrement
+                  target:
+                    entity_id: input_number.training_custom_warmup_speed
+                  repeat: 200
+                double_tap_action:
+                  action: none
+                extra_styles: "ha-card { transition: transform 120ms ease, filter 120ms ease,\
+                  \ background-color 160ms ease; -webkit-tap-highlight-color: transparent;\
+                  \ } ha-card:active { transform: scale(0.98); filter: brightness(1.08); }"
+                styles:
+                  card:
+                  - height: 46px
+                  - box-sizing: border-box
+                  - padding: '0'
+                  - margin: '0'
+                  - background: var(--mlh-surface2)
+                  - color: var(--mlh-fg)
+                  - border: none
+                  - border-radius: 999px
+                  - box-shadow: none
+                  - opacity: "[[[ const direction = -1; if (!entity) return '0.35'; const\
+                      \ n = Number(entity.state), limit = Number(direction > 0 ? entity.attributes.max\
+                      \ : entity.attributes.min); return Number.isFinite(n) && Number.isFinite(limit)\
+                      \ && (direction > 0 ? n >= limit : n <= limit) ? '0.35' : '1'; ]]]"
+                  grid:
+                  - grid-template-areas: "\"i\""
+                  - grid-template-columns: 1fr
+                  - grid-template-rows: 1fr
+                  - height: 100%
+                  img_cell:
+                  - width: 100%
+                  - height: 100%
+                  icon:
+                  - width: 22px
+                  - height: 22px
+                  - color: var(--mlh-fg)
+              do_not_eval: true
+            v2: "[[[ const id = \"input_number.training_custom_warmup_speed\"; const digits\
+              \ = 1; const size = \"21px\"; const fg = \"var(--mlh-fg)\"; const muted = \"\
+              var(--mlh-muted)\"; const s = states[id]; const n = s ? Number(s.state) : NaN;\
+              \ const ok = s && String(s.state).trim() !== '' && Number.isFinite(n); return\
+              \ '<span style=\"font-size:' + size + ';font-weight:700;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-0.01em;color:'\
+              \ + (ok ? fg : muted) + '\">' + (ok ? n.toFixed(digits) : '—') + '</span>';\
+              \ ]]]"
+            p2:
+              card:
+                type: custom:button-card
+                entity: input_number.training_custom_warmup_speed
+                icon: mdi:plus
+                show_icon: true
+                show_name: false
+                show_state: false
+                show_label: false
+                tap_action:
+                  action: perform-action
+                  perform_action: input_number.increment
+                  target:
+                    entity_id: input_number.training_custom_warmup_speed
+                  haptic: light
+                hold_action:
+                  action: perform-action
+                  perform_action: input_number.increment
+                  target:
+                    entity_id: input_number.training_custom_warmup_speed
+                  repeat: 200
+                double_tap_action:
+                  action: none
+                extra_styles: "ha-card { transition: transform 120ms ease, filter 120ms ease,\
+                  \ background-color 160ms ease; -webkit-tap-highlight-color: transparent;\
+                  \ } ha-card:active { transform: scale(0.98); filter: brightness(1.08); }"
+                styles:
+                  card:
+                  - height: 46px
+                  - box-sizing: border-box
+                  - padding: '0'
+                  - margin: '0'
+                  - background: var(--mlh-surface2)
+                  - color: var(--mlh-fg)
+                  - border: none
+                  - border-radius: 999px
+                  - box-shadow: none
+                  - opacity: "[[[ const direction = 1; if (!entity) return '0.35'; const n\
+                      \ = Number(entity.state), limit = Number(direction > 0 ? entity.attributes.max\
+                      \ : entity.attributes.min); return Number.isFinite(n) && Number.isFinite(limit)\
+                      \ && (direction > 0 ? n >= limit : n <= limit) ? '0.35' : '1'; ]]]"
+                  grid:
+                  - grid-template-areas: "\"i\""
+                  - grid-template-columns: 1fr
+                  - grid-template-rows: 1fr
+                  - height: 100%
+                  img_cell:
+                  - width: 100%
+                  - height: 100%
+                  icon:
+                  - width: 22px
+                  - height: 22px
+                  - color: var(--mlh-fg)
+              do_not_eval: true
+            l3: "[[[ return \"<span style=\\\"font-size:13px;font-weight:500;color:var(--mlh-fg)\\\
+              \">坡度</span><span style=\\\"font-size:12px;font-weight:500;margin-left:6px;color:var(--mlh-muted)\\\
+              \">%</span>\"; ]]]"
+            m3:
+              card:
+                type: custom:button-card
+                entity: input_number.training_custom_warmup_incline
+                icon: mdi:minus
+                show_icon: true
+                show_name: false
+                show_state: false
+                show_label: false
+                tap_action:
+                  action: perform-action
+                  perform_action: input_number.decrement
+                  target:
+                    entity_id: input_number.training_custom_warmup_incline
+                  haptic: light
+                hold_action:
+                  action: perform-action
+                  perform_action: input_number.decrement
+                  target:
+                    entity_id: input_number.training_custom_warmup_incline
+                  repeat: 200
+                double_tap_action:
+                  action: none
+                extra_styles: "ha-card { transition: transform 120ms ease, filter 120ms ease,\
+                  \ background-color 160ms ease; -webkit-tap-highlight-color: transparent;\
+                  \ } ha-card:active { transform: scale(0.98); filter: brightness(1.08); }"
+                styles:
+                  card:
+                  - height: 46px
+                  - box-sizing: border-box
+                  - padding: '0'
+                  - margin: '0'
+                  - background: var(--mlh-surface2)
+                  - color: var(--mlh-fg)
+                  - border: none
+                  - border-radius: 999px
+                  - box-shadow: none
+                  - opacity: "[[[ const direction = -1; if (!entity) return '0.35'; const\
+                      \ n = Number(entity.state), limit = Number(direction > 0 ? entity.attributes.max\
+                      \ : entity.attributes.min); return Number.isFinite(n) && Number.isFinite(limit)\
+                      \ && (direction > 0 ? n >= limit : n <= limit) ? '0.35' : '1'; ]]]"
+                  grid:
+                  - grid-template-areas: "\"i\""
+                  - grid-template-columns: 1fr
+                  - grid-template-rows: 1fr
+                  - height: 100%
+                  img_cell:
+                  - width: 100%
+                  - height: 100%
+                  icon:
+                  - width: 22px
+                  - height: 22px
+                  - color: var(--mlh-fg)
+              do_not_eval: true
+            v3: "[[[ const id = \"input_number.training_custom_warmup_incline\"; const digits\
+              \ = 0; const size = \"21px\"; const fg = \"var(--mlh-fg)\"; const muted = \"\
+              var(--mlh-muted)\"; const s = states[id]; const n = s ? Number(s.state) : NaN;\
+              \ const ok = s && String(s.state).trim() !== '' && Number.isFinite(n); return\
+              \ '<span style=\"font-size:' + size + ';font-weight:700;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-0.01em;color:'\
+              \ + (ok ? fg : muted) + '\">' + (ok ? n.toFixed(digits) : '—') + '</span>';\
+              \ ]]]"
+            p3:
+              card:
+                type: custom:button-card
+                entity: input_number.training_custom_warmup_incline
+                icon: mdi:plus
+                show_icon: true
+                show_name: false
+                show_state: false
+                show_label: false
+                tap_action:
+                  action: perform-action
+                  perform_action: input_number.increment
+                  target:
+                    entity_id: input_number.training_custom_warmup_incline
+                  haptic: light
+                hold_action:
+                  action: perform-action
+                  perform_action: input_number.increment
+                  target:
+                    entity_id: input_number.training_custom_warmup_incline
+                  repeat: 200
+                double_tap_action:
+                  action: none
+                extra_styles: "ha-card { transition: transform 120ms ease, filter 120ms ease,\
+                  \ background-color 160ms ease; -webkit-tap-highlight-color: transparent;\
+                  \ } ha-card:active { transform: scale(0.98); filter: brightness(1.08); }"
+                styles:
+                  card:
+                  - height: 46px
+                  - box-sizing: border-box
+                  - padding: '0'
+                  - margin: '0'
+                  - background: var(--mlh-surface2)
+                  - color: var(--mlh-fg)
+                  - border: none
+                  - border-radius: 999px
+                  - box-shadow: none
+                  - opacity: "[[[ const direction = 1; if (!entity) return '0.35'; const n\
+                      \ = Number(entity.state), limit = Number(direction > 0 ? entity.attributes.max\
+                      \ : entity.attributes.min); return Number.isFinite(n) && Number.isFinite(limit)\
+                      \ && (direction > 0 ? n >= limit : n <= limit) ? '0.35' : '1'; ]]]"
+                  grid:
+                  - grid-template-areas: "\"i\""
+                  - grid-template-columns: 1fr
+                  - grid-template-rows: 1fr
+                  - height: 100%
+                  img_cell:
+                  - width: 100%
+                  - height: 100%
+                  icon:
+                  - width: 22px
+                  - height: 22px
+                  - color: var(--mlh-fg)
+              do_not_eval: true
+          styles:
+            card:
+            - height: 100%
+            - box-sizing: border-box
+            - padding: 8px 14px
+            - margin: '0'
+            - overflow: hidden
+            - cursor: default
+            - background: var(--mlh-card)
+            - border: 1px solid var(--mlh-border)
+            - border-radius: 16px
+            - box-shadow: none
+            - color: var(--mlh-fg)
+            - font-size: 14px
+            - font-weight: '400'
+            - text-align: left
+            grid:
+            - grid-template-areas: "\"title title title title title title title title title\
+                \ title title\" \"l1 l1 l1 . l2 l2 l2 . l3 l3 l3\" \"m1 v1 p1 . m2 v2 p2 .\
+                \ m3 v3 p3\""
+            - grid-template-columns: 38px minmax(0, 1fr) 38px 10px 38px minmax(0, 1fr) 38px
+                10px 38px minmax(0, 1fr) 38px
+            - grid-template-rows: auto auto auto
+            - gap: 10px 0
+            - width: 100%
+            - height: 100%
+            - align-items: stretch
+            - justify-items: stretch
+            - align-content: center
+            custom_fields:
+              title:
+              - grid-area: title
+              - min-width: '0'
+              - min-height: '0'
+              - overflow: visible
+              - align-self: center
+              - justify-self: start
+              l1:
+              - grid-area: l1
+              - min-width: '0'
+              - min-height: '0'
+              - overflow: visible
+              - align-self: end
+              - justify-self: center
+              - white-space: nowrap
+              m1:
+              - grid-area: m1
+              - min-width: '0'
+              - min-height: '0'
+              - overflow: visible
+              - align-self: center
+              v1:
+              - grid-area: v1
+              - min-width: '0'
+              - min-height: '0'
+              - overflow: visible
+              - align-self: center
+              - justify-self: center
+              p1:
+              - grid-area: p1
+              - min-width: '0'
+              - min-height: '0'
+              - overflow: visible
+              - align-self: center
+              l2:
+              - grid-area: l2
+              - min-width: '0'
+              - min-height: '0'
+              - overflow: visible
+              - align-self: end
+              - justify-self: center
+              - white-space: nowrap
+              m2:
+              - grid-area: m2
+              - min-width: '0'
+              - min-height: '0'
+              - overflow: visible
+              - align-self: center
+              v2:
+              - grid-area: v2
+              - min-width: '0'
+              - min-height: '0'
+              - overflow: visible
+              - align-self: center
+              - justify-self: center
+              p2:
+              - grid-area: p2
+              - min-width: '0'
+              - min-height: '0'
+              - overflow: visible
+              - align-self: center
+              l3:
+              - grid-area: l3
+              - min-width: '0'
+              - min-height: '0'
+              - overflow: visible
+              - align-self: end
+              - justify-self: center
+              - white-space: nowrap
+              m3:
+              - grid-area: m3
+              - min-width: '0'
+              - min-height: '0'
+              - overflow: visible
+              - align-self: center
+              v3:
+              - grid-area: v3
+              - min-width: '0'
+              - min-height: '0'
+              - overflow: visible
+              - align-self: center
+              - justify-self: center
+              p3:
+              - grid-area: p3
+              - min-width: '0'
+              - min-height: '0'
+              - overflow: visible
+              - align-self: center
+        do_not_eval: true
+      ph2:
+        card:
+          type: custom:button-card
+          show_icon: false
+          show_name: false
+          show_state: false
+          show_label: false
+          tap_action:
+            action: none
+          hold_action:
+            action: none
+          double_tap_action:
+            action: none
+          triggers_update:
+          - input_number.training_custom_fast_dur
+          - input_number.training_custom_fast_speed
+          - input_number.training_custom_fast_incline
+          extra_styles: "ha-ripple, mwc-ripple { display: none !important; } #container >\
+            \ div { min-width: 0; min-height: 0; } #container > div > button-card, #container\
+            \ > div > hui-picture-entity-card { display: block; height: 100%; min-height:\
+            \ 0; }"
+          custom_fields:
+            title: "[[[ return \"<span style=\\\"display:inline-flex;align-items:center;gap:8px;font-size:15px;font-weight:700;line-height:22px;color:var(--mlh-fg)\\\
+              \"><span style=\\\"display:inline-block;width:4px;height:15px;border-radius:2px;background:var(--mlh-training)\\\
+              \"></span>快走</span>\"; ]]]"
+            l1: "[[[ return \"<span style=\\\"font-size:13px;font-weight:500;color:var(--mlh-fg)\\\
+              \">時間</span><span style=\\\"font-size:12px;font-weight:500;margin-left:6px;color:var(--mlh-muted)\\\
+              \">秒</span>\"; ]]]"
+            m1:
+              card:
+                type: custom:button-card
+                entity: input_number.training_custom_fast_dur
+                icon: mdi:minus
+                show_icon: true
+                show_name: false
+                show_state: false
+                show_label: false
+                tap_action:
+                  action: perform-action
+                  perform_action: input_number.decrement
+                  target:
+                    entity_id: input_number.training_custom_fast_dur
+                  haptic: light
+                hold_action:
+                  action: perform-action
+                  perform_action: input_number.decrement
+                  target:
+                    entity_id: input_number.training_custom_fast_dur
+                  repeat: 200
+                double_tap_action:
+                  action: none
+                extra_styles: "ha-card { transition: transform 120ms ease, filter 120ms ease,\
+                  \ background-color 160ms ease; -webkit-tap-highlight-color: transparent;\
+                  \ } ha-card:active { transform: scale(0.98); filter: brightness(1.08); }"
+                styles:
+                  card:
+                  - height: 46px
+                  - box-sizing: border-box
+                  - padding: '0'
+                  - margin: '0'
+                  - background: var(--mlh-surface2)
+                  - color: var(--mlh-fg)
+                  - border: none
+                  - border-radius: 999px
+                  - box-shadow: none
+                  - opacity: "[[[ const direction = -1; if (!entity) return '0.35'; const\
+                      \ n = Number(entity.state), limit = Number(direction > 0 ? entity.attributes.max\
+                      \ : entity.attributes.min); return Number.isFinite(n) && Number.isFinite(limit)\
+                      \ && (direction > 0 ? n >= limit : n <= limit) ? '0.35' : '1'; ]]]"
+                  grid:
+                  - grid-template-areas: "\"i\""
+                  - grid-template-columns: 1fr
+                  - grid-template-rows: 1fr
+                  - height: 100%
+                  img_cell:
+                  - width: 100%
+                  - height: 100%
+                  icon:
+                  - width: 22px
+                  - height: 22px
+                  - color: var(--mlh-fg)
+              do_not_eval: true
+            v1: "[[[ const id = \"input_number.training_custom_fast_dur\"; const digits =\
+              \ 0; const size = \"21px\"; const fg = \"var(--mlh-fg)\"; const muted = \"var(--mlh-muted)\"\
+              ; const s = states[id]; const n = s ? Number(s.state) : NaN; const ok = s &&\
+              \ String(s.state).trim() !== '' && Number.isFinite(n); return '<span style=\"\
+              font-size:' + size + ';font-weight:700;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-0.01em;color:'\
+              \ + (ok ? fg : muted) + '\">' + (ok ? n.toFixed(digits) : '—') + '</span>';\
+              \ ]]]"
+            p1:
+              card:
+                type: custom:button-card
+                entity: input_number.training_custom_fast_dur
+                icon: mdi:plus
+                show_icon: true
+                show_name: false
+                show_state: false
+                show_label: false
+                tap_action:
+                  action: perform-action
+                  perform_action: input_number.increment
+                  target:
+                    entity_id: input_number.training_custom_fast_dur
+                  haptic: light
+                hold_action:
+                  action: perform-action
+                  perform_action: input_number.increment
+                  target:
+                    entity_id: input_number.training_custom_fast_dur
+                  repeat: 200
+                double_tap_action:
+                  action: none
+                extra_styles: "ha-card { transition: transform 120ms ease, filter 120ms ease,\
+                  \ background-color 160ms ease; -webkit-tap-highlight-color: transparent;\
+                  \ } ha-card:active { transform: scale(0.98); filter: brightness(1.08); }"
+                styles:
+                  card:
+                  - height: 46px
+                  - box-sizing: border-box
+                  - padding: '0'
+                  - margin: '0'
+                  - background: var(--mlh-surface2)
+                  - color: var(--mlh-fg)
+                  - border: none
+                  - border-radius: 999px
+                  - box-shadow: none
+                  - opacity: "[[[ const direction = 1; if (!entity) return '0.35'; const n\
+                      \ = Number(entity.state), limit = Number(direction > 0 ? entity.attributes.max\
+                      \ : entity.attributes.min); return Number.isFinite(n) && Number.isFinite(limit)\
+                      \ && (direction > 0 ? n >= limit : n <= limit) ? '0.35' : '1'; ]]]"
+                  grid:
+                  - grid-template-areas: "\"i\""
+                  - grid-template-columns: 1fr
+                  - grid-template-rows: 1fr
+                  - height: 100%
+                  img_cell:
+                  - width: 100%
+                  - height: 100%
+                  icon:
+                  - width: 22px
+                  - height: 22px
+                  - color: var(--mlh-fg)
+              do_not_eval: true
+            l2: "[[[ return \"<span style=\\\"font-size:13px;font-weight:500;color:var(--mlh-fg)\\\
+              \">速度</span><span style=\\\"font-size:12px;font-weight:500;margin-left:6px;color:var(--mlh-muted)\\\
+              \">km/h</span>\"; ]]]"
+            m2:
+              card:
+                type: custom:button-card
+                entity: input_number.training_custom_fast_speed
+                icon: mdi:minus
+                show_icon: true
+                show_name: false
+                show_state: false
+                show_label: false
+                tap_action:
+                  action: perform-action
+                  perform_action: input_number.decrement
+                  target:
+                    entity_id: input_number.training_custom_fast_speed
+                  haptic: light
+                hold_action:
+                  action: perform-action
+                  perform_action: input_number.decrement
+                  target:
+                    entity_id: input_number.training_custom_fast_speed
+                  repeat: 200
+                double_tap_action:
+                  action: none
+                extra_styles: "ha-card { transition: transform 120ms ease, filter 120ms ease,\
+                  \ background-color 160ms ease; -webkit-tap-highlight-color: transparent;\
+                  \ } ha-card:active { transform: scale(0.98); filter: brightness(1.08); }"
+                styles:
+                  card:
+                  - height: 46px
+                  - box-sizing: border-box
+                  - padding: '0'
+                  - margin: '0'
+                  - background: var(--mlh-surface2)
+                  - color: var(--mlh-fg)
+                  - border: none
+                  - border-radius: 999px
+                  - box-shadow: none
+                  - opacity: "[[[ const direction = -1; if (!entity) return '0.35'; const\
+                      \ n = Number(entity.state), limit = Number(direction > 0 ? entity.attributes.max\
+                      \ : entity.attributes.min); return Number.isFinite(n) && Number.isFinite(limit)\
+                      \ && (direction > 0 ? n >= limit : n <= limit) ? '0.35' : '1'; ]]]"
+                  grid:
+                  - grid-template-areas: "\"i\""
+                  - grid-template-columns: 1fr
+                  - grid-template-rows: 1fr
+                  - height: 100%
+                  img_cell:
+                  - width: 100%
+                  - height: 100%
+                  icon:
+                  - width: 22px
+                  - height: 22px
+                  - color: var(--mlh-fg)
+              do_not_eval: true
+            v2: "[[[ const id = \"input_number.training_custom_fast_speed\"; const digits\
+              \ = 1; const size = \"21px\"; const fg = \"var(--mlh-fg)\"; const muted = \"\
+              var(--mlh-muted)\"; const s = states[id]; const n = s ? Number(s.state) : NaN;\
+              \ const ok = s && String(s.state).trim() !== '' && Number.isFinite(n); return\
+              \ '<span style=\"font-size:' + size + ';font-weight:700;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-0.01em;color:'\
+              \ + (ok ? fg : muted) + '\">' + (ok ? n.toFixed(digits) : '—') + '</span>';\
+              \ ]]]"
+            p2:
+              card:
+                type: custom:button-card
+                entity: input_number.training_custom_fast_speed
+                icon: mdi:plus
+                show_icon: true
+                show_name: false
+                show_state: false
+                show_label: false
+                tap_action:
+                  action: perform-action
+                  perform_action: input_number.increment
+                  target:
+                    entity_id: input_number.training_custom_fast_speed
+                  haptic: light
+                hold_action:
+                  action: perform-action
+                  perform_action: input_number.increment
+                  target:
+                    entity_id: input_number.training_custom_fast_speed
+                  repeat: 200
+                double_tap_action:
+                  action: none
+                extra_styles: "ha-card { transition: transform 120ms ease, filter 120ms ease,\
+                  \ background-color 160ms ease; -webkit-tap-highlight-color: transparent;\
+                  \ } ha-card:active { transform: scale(0.98); filter: brightness(1.08); }"
+                styles:
+                  card:
+                  - height: 46px
+                  - box-sizing: border-box
+                  - padding: '0'
+                  - margin: '0'
+                  - background: var(--mlh-surface2)
+                  - color: var(--mlh-fg)
+                  - border: none
+                  - border-radius: 999px
+                  - box-shadow: none
+                  - opacity: "[[[ const direction = 1; if (!entity) return '0.35'; const n\
+                      \ = Number(entity.state), limit = Number(direction > 0 ? entity.attributes.max\
+                      \ : entity.attributes.min); return Number.isFinite(n) && Number.isFinite(limit)\
+                      \ && (direction > 0 ? n >= limit : n <= limit) ? '0.35' : '1'; ]]]"
+                  grid:
+                  - grid-template-areas: "\"i\""
+                  - grid-template-columns: 1fr
+                  - grid-template-rows: 1fr
+                  - height: 100%
+                  img_cell:
+                  - width: 100%
+                  - height: 100%
+                  icon:
+                  - width: 22px
+                  - height: 22px
+                  - color: var(--mlh-fg)
+              do_not_eval: true
+            l3: "[[[ return \"<span style=\\\"font-size:13px;font-weight:500;color:var(--mlh-fg)\\\
+              \">坡度</span><span style=\\\"font-size:12px;font-weight:500;margin-left:6px;color:var(--mlh-muted)\\\
+              \">%</span>\"; ]]]"
+            m3:
+              card:
+                type: custom:button-card
+                entity: input_number.training_custom_fast_incline
+                icon: mdi:minus
+                show_icon: true
+                show_name: false
+                show_state: false
+                show_label: false
+                tap_action:
+                  action: perform-action
+                  perform_action: input_number.decrement
+                  target:
+                    entity_id: input_number.training_custom_fast_incline
+                  haptic: light
+                hold_action:
+                  action: perform-action
+                  perform_action: input_number.decrement
+                  target:
+                    entity_id: input_number.training_custom_fast_incline
+                  repeat: 200
+                double_tap_action:
+                  action: none
+                extra_styles: "ha-card { transition: transform 120ms ease, filter 120ms ease,\
+                  \ background-color 160ms ease; -webkit-tap-highlight-color: transparent;\
+                  \ } ha-card:active { transform: scale(0.98); filter: brightness(1.08); }"
+                styles:
+                  card:
+                  - height: 46px
+                  - box-sizing: border-box
+                  - padding: '0'
+                  - margin: '0'
+                  - background: var(--mlh-surface2)
+                  - color: var(--mlh-fg)
+                  - border: none
+                  - border-radius: 999px
+                  - box-shadow: none
+                  - opacity: "[[[ const direction = -1; if (!entity) return '0.35'; const\
+                      \ n = Number(entity.state), limit = Number(direction > 0 ? entity.attributes.max\
+                      \ : entity.attributes.min); return Number.isFinite(n) && Number.isFinite(limit)\
+                      \ && (direction > 0 ? n >= limit : n <= limit) ? '0.35' : '1'; ]]]"
+                  grid:
+                  - grid-template-areas: "\"i\""
+                  - grid-template-columns: 1fr
+                  - grid-template-rows: 1fr
+                  - height: 100%
+                  img_cell:
+                  - width: 100%
+                  - height: 100%
+                  icon:
+                  - width: 22px
+                  - height: 22px
+                  - color: var(--mlh-fg)
+              do_not_eval: true
+            v3: "[[[ const id = \"input_number.training_custom_fast_incline\"; const digits\
+              \ = 0; const size = \"21px\"; const fg = \"var(--mlh-fg)\"; const muted = \"\
+              var(--mlh-muted)\"; const s = states[id]; const n = s ? Number(s.state) : NaN;\
+              \ const ok = s && String(s.state).trim() !== '' && Number.isFinite(n); return\
+              \ '<span style=\"font-size:' + size + ';font-weight:700;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-0.01em;color:'\
+              \ + (ok ? fg : muted) + '\">' + (ok ? n.toFixed(digits) : '—') + '</span>';\
+              \ ]]]"
+            p3:
+              card:
+                type: custom:button-card
+                entity: input_number.training_custom_fast_incline
+                icon: mdi:plus
+                show_icon: true
+                show_name: false
+                show_state: false
+                show_label: false
+                tap_action:
+                  action: perform-action
+                  perform_action: input_number.increment
+                  target:
+                    entity_id: input_number.training_custom_fast_incline
+                  haptic: light
+                hold_action:
+                  action: perform-action
+                  perform_action: input_number.increment
+                  target:
+                    entity_id: input_number.training_custom_fast_incline
+                  repeat: 200
+                double_tap_action:
+                  action: none
+                extra_styles: "ha-card { transition: transform 120ms ease, filter 120ms ease,\
+                  \ background-color 160ms ease; -webkit-tap-highlight-color: transparent;\
+                  \ } ha-card:active { transform: scale(0.98); filter: brightness(1.08); }"
+                styles:
+                  card:
+                  - height: 46px
+                  - box-sizing: border-box
+                  - padding: '0'
+                  - margin: '0'
+                  - background: var(--mlh-surface2)
+                  - color: var(--mlh-fg)
+                  - border: none
+                  - border-radius: 999px
+                  - box-shadow: none
+                  - opacity: "[[[ const direction = 1; if (!entity) return '0.35'; const n\
+                      \ = Number(entity.state), limit = Number(direction > 0 ? entity.attributes.max\
+                      \ : entity.attributes.min); return Number.isFinite(n) && Number.isFinite(limit)\
+                      \ && (direction > 0 ? n >= limit : n <= limit) ? '0.35' : '1'; ]]]"
+                  grid:
+                  - grid-template-areas: "\"i\""
+                  - grid-template-columns: 1fr
+                  - grid-template-rows: 1fr
+                  - height: 100%
+                  img_cell:
+                  - width: 100%
+                  - height: 100%
+                  icon:
+                  - width: 22px
+                  - height: 22px
+                  - color: var(--mlh-fg)
+              do_not_eval: true
+          styles:
+            card:
+            - height: 100%
+            - box-sizing: border-box
+            - padding: 8px 14px
+            - margin: '0'
+            - overflow: hidden
+            - cursor: default
+            - background: var(--mlh-card)
+            - border: 1px solid var(--mlh-border)
+            - border-radius: 16px
+            - box-shadow: none
+            - color: var(--mlh-fg)
+            - font-size: 14px
+            - font-weight: '400'
+            - text-align: left
+            grid:
+            - grid-template-areas: "\"title title title title title title title title title\
+                \ title title\" \"l1 l1 l1 . l2 l2 l2 . l3 l3 l3\" \"m1 v1 p1 . m2 v2 p2 .\
+                \ m3 v3 p3\""
+            - grid-template-columns: 38px minmax(0, 1fr) 38px 10px 38px minmax(0, 1fr) 38px
+                10px 38px minmax(0, 1fr) 38px
+            - grid-template-rows: auto auto auto
+            - gap: 10px 0
+            - width: 100%
+            - height: 100%
+            - align-items: stretch
+            - justify-items: stretch
+            - align-content: center
+            custom_fields:
+              title:
+              - grid-area: title
+              - min-width: '0'
+              - min-height: '0'
+              - overflow: visible
+              - align-self: center
+              - justify-self: start
+              l1:
+              - grid-area: l1
+              - min-width: '0'
+              - min-height: '0'
+              - overflow: visible
+              - align-self: end
+              - justify-self: center
+              - white-space: nowrap
+              m1:
+              - grid-area: m1
+              - min-width: '0'
+              - min-height: '0'
+              - overflow: visible
+              - align-self: center
+              v1:
+              - grid-area: v1
+              - min-width: '0'
+              - min-height: '0'
+              - overflow: visible
+              - align-self: center
+              - justify-self: center
+              p1:
+              - grid-area: p1
+              - min-width: '0'
+              - min-height: '0'
+              - overflow: visible
+              - align-self: center
+              l2:
+              - grid-area: l2
+              - min-width: '0'
+              - min-height: '0'
+              - overflow: visible
+              - align-self: end
+              - justify-self: center
+              - white-space: nowrap
+              m2:
+              - grid-area: m2
+              - min-width: '0'
+              - min-height: '0'
+              - overflow: visible
+              - align-self: center
+              v2:
+              - grid-area: v2
+              - min-width: '0'
+              - min-height: '0'
+              - overflow: visible
+              - align-self: center
+              - justify-self: center
+              p2:
+              - grid-area: p2
+              - min-width: '0'
+              - min-height: '0'
+              - overflow: visible
+              - align-self: center
+              l3:
+              - grid-area: l3
+              - min-width: '0'
+              - min-height: '0'
+              - overflow: visible
+              - align-self: end
+              - justify-self: center
+              - white-space: nowrap
+              m3:
+              - grid-area: m3
+              - min-width: '0'
+              - min-height: '0'
+              - overflow: visible
+              - align-self: center
+              v3:
+              - grid-area: v3
+              - min-width: '0'
+              - min-height: '0'
+              - overflow: visible
+              - align-self: center
+              - justify-self: center
+              p3:
+              - grid-area: p3
+              - min-width: '0'
+              - min-height: '0'
+              - overflow: visible
+              - align-self: center
+        do_not_eval: true
+      ph3:
+        card:
+          type: custom:button-card
+          show_icon: false
+          show_name: false
+          show_state: false
+          show_label: false
+          tap_action:
+            action: none
+          hold_action:
+            action: none
+          double_tap_action:
+            action: none
+          triggers_update:
+          - input_number.training_custom_rest_dur
+          - input_number.training_custom_rest_speed
+          - input_number.training_custom_rest_incline
+          extra_styles: "ha-ripple, mwc-ripple { display: none !important; } #container >\
+            \ div { min-width: 0; min-height: 0; } #container > div > button-card, #container\
+            \ > div > hui-picture-entity-card { display: block; height: 100%; min-height:\
+            \ 0; }"
+          custom_fields:
+            title: "[[[ return \"<span style=\\\"display:inline-flex;align-items:center;gap:8px;font-size:15px;font-weight:700;line-height:22px;color:var(--mlh-fg)\\\
+              \"><span style=\\\"display:inline-block;width:4px;height:15px;border-radius:2px;background:var(--mlh-recovery)\\\
+              \"></span>緩和</span>\"; ]]]"
+            l1: "[[[ return \"<span style=\\\"font-size:13px;font-weight:500;color:var(--mlh-fg)\\\
+              \">時間</span><span style=\\\"font-size:12px;font-weight:500;margin-left:6px;color:var(--mlh-muted)\\\
+              \">秒</span>\"; ]]]"
+            m1:
+              card:
+                type: custom:button-card
+                entity: input_number.training_custom_rest_dur
+                icon: mdi:minus
+                show_icon: true
+                show_name: false
+                show_state: false
+                show_label: false
+                tap_action:
+                  action: perform-action
+                  perform_action: input_number.decrement
+                  target:
+                    entity_id: input_number.training_custom_rest_dur
+                  haptic: light
+                hold_action:
+                  action: perform-action
+                  perform_action: input_number.decrement
+                  target:
+                    entity_id: input_number.training_custom_rest_dur
+                  repeat: 200
+                double_tap_action:
+                  action: none
+                extra_styles: "ha-card { transition: transform 120ms ease, filter 120ms ease,\
+                  \ background-color 160ms ease; -webkit-tap-highlight-color: transparent;\
+                  \ } ha-card:active { transform: scale(0.98); filter: brightness(1.08); }"
+                styles:
+                  card:
+                  - height: 46px
+                  - box-sizing: border-box
+                  - padding: '0'
+                  - margin: '0'
+                  - background: var(--mlh-surface2)
+                  - color: var(--mlh-fg)
+                  - border: none
+                  - border-radius: 999px
+                  - box-shadow: none
+                  - opacity: "[[[ const direction = -1; if (!entity) return '0.35'; const\
+                      \ n = Number(entity.state), limit = Number(direction > 0 ? entity.attributes.max\
+                      \ : entity.attributes.min); return Number.isFinite(n) && Number.isFinite(limit)\
+                      \ && (direction > 0 ? n >= limit : n <= limit) ? '0.35' : '1'; ]]]"
+                  grid:
+                  - grid-template-areas: "\"i\""
+                  - grid-template-columns: 1fr
+                  - grid-template-rows: 1fr
+                  - height: 100%
+                  img_cell:
+                  - width: 100%
+                  - height: 100%
+                  icon:
+                  - width: 22px
+                  - height: 22px
+                  - color: var(--mlh-fg)
+              do_not_eval: true
+            v1: "[[[ const id = \"input_number.training_custom_rest_dur\"; const digits =\
+              \ 0; const size = \"21px\"; const fg = \"var(--mlh-fg)\"; const muted = \"var(--mlh-muted)\"\
+              ; const s = states[id]; const n = s ? Number(s.state) : NaN; const ok = s &&\
+              \ String(s.state).trim() !== '' && Number.isFinite(n); return '<span style=\"\
+              font-size:' + size + ';font-weight:700;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-0.01em;color:'\
+              \ + (ok ? fg : muted) + '\">' + (ok ? n.toFixed(digits) : '—') + '</span>';\
+              \ ]]]"
+            p1:
+              card:
+                type: custom:button-card
+                entity: input_number.training_custom_rest_dur
+                icon: mdi:plus
+                show_icon: true
+                show_name: false
+                show_state: false
+                show_label: false
+                tap_action:
+                  action: perform-action
+                  perform_action: input_number.increment
+                  target:
+                    entity_id: input_number.training_custom_rest_dur
+                  haptic: light
+                hold_action:
+                  action: perform-action
+                  perform_action: input_number.increment
+                  target:
+                    entity_id: input_number.training_custom_rest_dur
+                  repeat: 200
+                double_tap_action:
+                  action: none
+                extra_styles: "ha-card { transition: transform 120ms ease, filter 120ms ease,\
+                  \ background-color 160ms ease; -webkit-tap-highlight-color: transparent;\
+                  \ } ha-card:active { transform: scale(0.98); filter: brightness(1.08); }"
+                styles:
+                  card:
+                  - height: 46px
+                  - box-sizing: border-box
+                  - padding: '0'
+                  - margin: '0'
+                  - background: var(--mlh-surface2)
+                  - color: var(--mlh-fg)
+                  - border: none
+                  - border-radius: 999px
+                  - box-shadow: none
+                  - opacity: "[[[ const direction = 1; if (!entity) return '0.35'; const n\
+                      \ = Number(entity.state), limit = Number(direction > 0 ? entity.attributes.max\
+                      \ : entity.attributes.min); return Number.isFinite(n) && Number.isFinite(limit)\
+                      \ && (direction > 0 ? n >= limit : n <= limit) ? '0.35' : '1'; ]]]"
+                  grid:
+                  - grid-template-areas: "\"i\""
+                  - grid-template-columns: 1fr
+                  - grid-template-rows: 1fr
+                  - height: 100%
+                  img_cell:
+                  - width: 100%
+                  - height: 100%
+                  icon:
+                  - width: 22px
+                  - height: 22px
+                  - color: var(--mlh-fg)
+              do_not_eval: true
+            l2: "[[[ return \"<span style=\\\"font-size:13px;font-weight:500;color:var(--mlh-fg)\\\
+              \">速度</span><span style=\\\"font-size:12px;font-weight:500;margin-left:6px;color:var(--mlh-muted)\\\
+              \">km/h</span>\"; ]]]"
+            m2:
+              card:
+                type: custom:button-card
+                entity: input_number.training_custom_rest_speed
+                icon: mdi:minus
+                show_icon: true
+                show_name: false
+                show_state: false
+                show_label: false
+                tap_action:
+                  action: perform-action
+                  perform_action: input_number.decrement
+                  target:
+                    entity_id: input_number.training_custom_rest_speed
+                  haptic: light
+                hold_action:
+                  action: perform-action
+                  perform_action: input_number.decrement
+                  target:
+                    entity_id: input_number.training_custom_rest_speed
+                  repeat: 200
+                double_tap_action:
+                  action: none
+                extra_styles: "ha-card { transition: transform 120ms ease, filter 120ms ease,\
+                  \ background-color 160ms ease; -webkit-tap-highlight-color: transparent;\
+                  \ } ha-card:active { transform: scale(0.98); filter: brightness(1.08); }"
+                styles:
+                  card:
+                  - height: 46px
+                  - box-sizing: border-box
+                  - padding: '0'
+                  - margin: '0'
+                  - background: var(--mlh-surface2)
+                  - color: var(--mlh-fg)
+                  - border: none
+                  - border-radius: 999px
+                  - box-shadow: none
+                  - opacity: "[[[ const direction = -1; if (!entity) return '0.35'; const\
+                      \ n = Number(entity.state), limit = Number(direction > 0 ? entity.attributes.max\
+                      \ : entity.attributes.min); return Number.isFinite(n) && Number.isFinite(limit)\
+                      \ && (direction > 0 ? n >= limit : n <= limit) ? '0.35' : '1'; ]]]"
+                  grid:
+                  - grid-template-areas: "\"i\""
+                  - grid-template-columns: 1fr
+                  - grid-template-rows: 1fr
+                  - height: 100%
+                  img_cell:
+                  - width: 100%
+                  - height: 100%
+                  icon:
+                  - width: 22px
+                  - height: 22px
+                  - color: var(--mlh-fg)
+              do_not_eval: true
+            v2: "[[[ const id = \"input_number.training_custom_rest_speed\"; const digits\
+              \ = 1; const size = \"21px\"; const fg = \"var(--mlh-fg)\"; const muted = \"\
+              var(--mlh-muted)\"; const s = states[id]; const n = s ? Number(s.state) : NaN;\
+              \ const ok = s && String(s.state).trim() !== '' && Number.isFinite(n); return\
+              \ '<span style=\"font-size:' + size + ';font-weight:700;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-0.01em;color:'\
+              \ + (ok ? fg : muted) + '\">' + (ok ? n.toFixed(digits) : '—') + '</span>';\
+              \ ]]]"
+            p2:
+              card:
+                type: custom:button-card
+                entity: input_number.training_custom_rest_speed
+                icon: mdi:plus
+                show_icon: true
+                show_name: false
+                show_state: false
+                show_label: false
+                tap_action:
+                  action: perform-action
+                  perform_action: input_number.increment
+                  target:
+                    entity_id: input_number.training_custom_rest_speed
+                  haptic: light
+                hold_action:
+                  action: perform-action
+                  perform_action: input_number.increment
+                  target:
+                    entity_id: input_number.training_custom_rest_speed
+                  repeat: 200
+                double_tap_action:
+                  action: none
+                extra_styles: "ha-card { transition: transform 120ms ease, filter 120ms ease,\
+                  \ background-color 160ms ease; -webkit-tap-highlight-color: transparent;\
+                  \ } ha-card:active { transform: scale(0.98); filter: brightness(1.08); }"
+                styles:
+                  card:
+                  - height: 46px
+                  - box-sizing: border-box
+                  - padding: '0'
+                  - margin: '0'
+                  - background: var(--mlh-surface2)
+                  - color: var(--mlh-fg)
+                  - border: none
+                  - border-radius: 999px
+                  - box-shadow: none
+                  - opacity: "[[[ const direction = 1; if (!entity) return '0.35'; const n\
+                      \ = Number(entity.state), limit = Number(direction > 0 ? entity.attributes.max\
+                      \ : entity.attributes.min); return Number.isFinite(n) && Number.isFinite(limit)\
+                      \ && (direction > 0 ? n >= limit : n <= limit) ? '0.35' : '1'; ]]]"
+                  grid:
+                  - grid-template-areas: "\"i\""
+                  - grid-template-columns: 1fr
+                  - grid-template-rows: 1fr
+                  - height: 100%
+                  img_cell:
+                  - width: 100%
+                  - height: 100%
+                  icon:
+                  - width: 22px
+                  - height: 22px
+                  - color: var(--mlh-fg)
+              do_not_eval: true
+            l3: "[[[ return \"<span style=\\\"font-size:13px;font-weight:500;color:var(--mlh-fg)\\\
+              \">坡度</span><span style=\\\"font-size:12px;font-weight:500;margin-left:6px;color:var(--mlh-muted)\\\
+              \">%</span>\"; ]]]"
+            m3:
+              card:
+                type: custom:button-card
+                entity: input_number.training_custom_rest_incline
+                icon: mdi:minus
+                show_icon: true
+                show_name: false
+                show_state: false
+                show_label: false
+                tap_action:
+                  action: perform-action
+                  perform_action: input_number.decrement
+                  target:
+                    entity_id: input_number.training_custom_rest_incline
+                  haptic: light
+                hold_action:
+                  action: perform-action
+                  perform_action: input_number.decrement
+                  target:
+                    entity_id: input_number.training_custom_rest_incline
+                  repeat: 200
+                double_tap_action:
+                  action: none
+                extra_styles: "ha-card { transition: transform 120ms ease, filter 120ms ease,\
+                  \ background-color 160ms ease; -webkit-tap-highlight-color: transparent;\
+                  \ } ha-card:active { transform: scale(0.98); filter: brightness(1.08); }"
+                styles:
+                  card:
+                  - height: 46px
+                  - box-sizing: border-box
+                  - padding: '0'
+                  - margin: '0'
+                  - background: var(--mlh-surface2)
+                  - color: var(--mlh-fg)
+                  - border: none
+                  - border-radius: 999px
+                  - box-shadow: none
+                  - opacity: "[[[ const direction = -1; if (!entity) return '0.35'; const\
+                      \ n = Number(entity.state), limit = Number(direction > 0 ? entity.attributes.max\
+                      \ : entity.attributes.min); return Number.isFinite(n) && Number.isFinite(limit)\
+                      \ && (direction > 0 ? n >= limit : n <= limit) ? '0.35' : '1'; ]]]"
+                  grid:
+                  - grid-template-areas: "\"i\""
+                  - grid-template-columns: 1fr
+                  - grid-template-rows: 1fr
+                  - height: 100%
+                  img_cell:
+                  - width: 100%
+                  - height: 100%
+                  icon:
+                  - width: 22px
+                  - height: 22px
+                  - color: var(--mlh-fg)
+              do_not_eval: true
+            v3: "[[[ const id = \"input_number.training_custom_rest_incline\"; const digits\
+              \ = 0; const size = \"21px\"; const fg = \"var(--mlh-fg)\"; const muted = \"\
+              var(--mlh-muted)\"; const s = states[id]; const n = s ? Number(s.state) : NaN;\
+              \ const ok = s && String(s.state).trim() !== '' && Number.isFinite(n); return\
+              \ '<span style=\"font-size:' + size + ';font-weight:700;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-0.01em;color:'\
+              \ + (ok ? fg : muted) + '\">' + (ok ? n.toFixed(digits) : '—') + '</span>';\
+              \ ]]]"
+            p3:
+              card:
+                type: custom:button-card
+                entity: input_number.training_custom_rest_incline
+                icon: mdi:plus
+                show_icon: true
+                show_name: false
+                show_state: false
+                show_label: false
+                tap_action:
+                  action: perform-action
+                  perform_action: input_number.increment
+                  target:
+                    entity_id: input_number.training_custom_rest_incline
+                  haptic: light
+                hold_action:
+                  action: perform-action
+                  perform_action: input_number.increment
+                  target:
+                    entity_id: input_number.training_custom_rest_incline
+                  repeat: 200
+                double_tap_action:
+                  action: none
+                extra_styles: "ha-card { transition: transform 120ms ease, filter 120ms ease,\
+                  \ background-color 160ms ease; -webkit-tap-highlight-color: transparent;\
+                  \ } ha-card:active { transform: scale(0.98); filter: brightness(1.08); }"
+                styles:
+                  card:
+                  - height: 46px
+                  - box-sizing: border-box
+                  - padding: '0'
+                  - margin: '0'
+                  - background: var(--mlh-surface2)
+                  - color: var(--mlh-fg)
+                  - border: none
+                  - border-radius: 999px
+                  - box-shadow: none
+                  - opacity: "[[[ const direction = 1; if (!entity) return '0.35'; const n\
+                      \ = Number(entity.state), limit = Number(direction > 0 ? entity.attributes.max\
+                      \ : entity.attributes.min); return Number.isFinite(n) && Number.isFinite(limit)\
+                      \ && (direction > 0 ? n >= limit : n <= limit) ? '0.35' : '1'; ]]]"
+                  grid:
+                  - grid-template-areas: "\"i\""
+                  - grid-template-columns: 1fr
+                  - grid-template-rows: 1fr
+                  - height: 100%
+                  img_cell:
+                  - width: 100%
+                  - height: 100%
+                  icon:
+                  - width: 22px
+                  - height: 22px
+                  - color: var(--mlh-fg)
+              do_not_eval: true
+          styles:
+            card:
+            - height: 100%
+            - box-sizing: border-box
+            - padding: 8px 14px
+            - margin: '0'
+            - overflow: hidden
+            - cursor: default
+            - background: var(--mlh-card)
+            - border: 1px solid var(--mlh-border)
+            - border-radius: 16px
+            - box-shadow: none
+            - color: var(--mlh-fg)
+            - font-size: 14px
+            - font-weight: '400'
+            - text-align: left
+            grid:
+            - grid-template-areas: "\"title title title title title title title title title\
+                \ title title\" \"l1 l1 l1 . l2 l2 l2 . l3 l3 l3\" \"m1 v1 p1 . m2 v2 p2 .\
+                \ m3 v3 p3\""
+            - grid-template-columns: 38px minmax(0, 1fr) 38px 10px 38px minmax(0, 1fr) 38px
+                10px 38px minmax(0, 1fr) 38px
+            - grid-template-rows: auto auto auto
+            - gap: 10px 0
+            - width: 100%
+            - height: 100%
+            - align-items: stretch
+            - justify-items: stretch
+            - align-content: center
+            custom_fields:
+              title:
+              - grid-area: title
+              - min-width: '0'
+              - min-height: '0'
+              - overflow: visible
+              - align-self: center
+              - justify-self: start
+              l1:
+              - grid-area: l1
+              - min-width: '0'
+              - min-height: '0'
+              - overflow: visible
+              - align-self: end
+              - justify-self: center
+              - white-space: nowrap
+              m1:
+              - grid-area: m1
+              - min-width: '0'
+              - min-height: '0'
+              - overflow: visible
+              - align-self: center
+              v1:
+              - grid-area: v1
+              - min-width: '0'
+              - min-height: '0'
+              - overflow: visible
+              - align-self: center
+              - justify-self: center
+              p1:
+              - grid-area: p1
+              - min-width: '0'
+              - min-height: '0'
+              - overflow: visible
+              - align-self: center
+              l2:
+              - grid-area: l2
+              - min-width: '0'
+              - min-height: '0'
+              - overflow: visible
+              - align-self: end
+              - justify-self: center
+              - white-space: nowrap
+              m2:
+              - grid-area: m2
+              - min-width: '0'
+              - min-height: '0'
+              - overflow: visible
+              - align-self: center
+              v2:
+              - grid-area: v2
+              - min-width: '0'
+              - min-height: '0'
+              - overflow: visible
+              - align-self: center
+              - justify-self: center
+              p2:
+              - grid-area: p2
+              - min-width: '0'
+              - min-height: '0'
+              - overflow: visible
+              - align-self: center
+              l3:
+              - grid-area: l3
+              - min-width: '0'
+              - min-height: '0'
+              - overflow: visible
+              - align-self: end
+              - justify-self: center
+              - white-space: nowrap
+              m3:
+              - grid-area: m3
+              - min-width: '0'
+              - min-height: '0'
+              - overflow: visible
+              - align-self: center
+              v3:
+              - grid-area: v3
+              - min-width: '0'
+              - min-height: '0'
+              - overflow: visible
+              - align-self: center
+              - justify-self: center
+              p3:
+              - grid-area: p3
+              - min-width: '0'
+              - min-height: '0'
+              - overflow: visible
+              - align-self: center
+        do_not_eval: true
+      ph4:
+        card:
+          type: custom:button-card
+          show_icon: false
+          show_name: false
+          show_state: false
+          show_label: false
+          tap_action:
+            action: none
+          hold_action:
+            action: none
+          double_tap_action:
+            action: none
+          triggers_update:
+          - input_number.training_custom_cooldown_dur
+          - input_number.training_custom_cooldown_speed
+          - input_number.training_custom_cooldown_incline
+          extra_styles: "ha-ripple, mwc-ripple { display: none !important; } #container >\
+            \ div { min-width: 0; min-height: 0; } #container > div > button-card, #container\
+            \ > div > hui-picture-entity-card { display: block; height: 100%; min-height:\
+            \ 0; }"
+          custom_fields:
+            title: "[[[ return \"<span style=\\\"display:inline-flex;align-items:center;gap:8px;font-size:15px;font-weight:700;line-height:22px;color:var(--mlh-fg)\\\
+              \"><span style=\\\"display:inline-block;width:4px;height:15px;border-radius:2px;background:var(--mlh-body)\\\
+              \"></span>收操</span>\"; ]]]"
+            l1: "[[[ return \"<span style=\\\"font-size:13px;font-weight:500;color:var(--mlh-fg)\\\
+              \">時間</span><span style=\\\"font-size:12px;font-weight:500;margin-left:6px;color:var(--mlh-muted)\\\
+              \">秒</span>\"; ]]]"
+            m1:
+              card:
+                type: custom:button-card
+                entity: input_number.training_custom_cooldown_dur
+                icon: mdi:minus
+                show_icon: true
+                show_name: false
+                show_state: false
+                show_label: false
+                tap_action:
+                  action: perform-action
+                  perform_action: input_number.decrement
+                  target:
+                    entity_id: input_number.training_custom_cooldown_dur
+                  haptic: light
+                hold_action:
+                  action: perform-action
+                  perform_action: input_number.decrement
+                  target:
+                    entity_id: input_number.training_custom_cooldown_dur
+                  repeat: 200
+                double_tap_action:
+                  action: none
+                extra_styles: "ha-card { transition: transform 120ms ease, filter 120ms ease,\
+                  \ background-color 160ms ease; -webkit-tap-highlight-color: transparent;\
+                  \ } ha-card:active { transform: scale(0.98); filter: brightness(1.08); }"
+                styles:
+                  card:
+                  - height: 46px
+                  - box-sizing: border-box
+                  - padding: '0'
+                  - margin: '0'
+                  - background: var(--mlh-surface2)
+                  - color: var(--mlh-fg)
+                  - border: none
+                  - border-radius: 999px
+                  - box-shadow: none
+                  - opacity: "[[[ const direction = -1; if (!entity) return '0.35'; const\
+                      \ n = Number(entity.state), limit = Number(direction > 0 ? entity.attributes.max\
+                      \ : entity.attributes.min); return Number.isFinite(n) && Number.isFinite(limit)\
+                      \ && (direction > 0 ? n >= limit : n <= limit) ? '0.35' : '1'; ]]]"
+                  grid:
+                  - grid-template-areas: "\"i\""
+                  - grid-template-columns: 1fr
+                  - grid-template-rows: 1fr
+                  - height: 100%
+                  img_cell:
+                  - width: 100%
+                  - height: 100%
+                  icon:
+                  - width: 22px
+                  - height: 22px
+                  - color: var(--mlh-fg)
+              do_not_eval: true
+            v1: "[[[ const id = \"input_number.training_custom_cooldown_dur\"; const digits\
+              \ = 0; const size = \"21px\"; const fg = \"var(--mlh-fg)\"; const muted = \"\
+              var(--mlh-muted)\"; const s = states[id]; const n = s ? Number(s.state) : NaN;\
+              \ const ok = s && String(s.state).trim() !== '' && Number.isFinite(n); return\
+              \ '<span style=\"font-size:' + size + ';font-weight:700;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-0.01em;color:'\
+              \ + (ok ? fg : muted) + '\">' + (ok ? n.toFixed(digits) : '—') + '</span>';\
+              \ ]]]"
+            p1:
+              card:
+                type: custom:button-card
+                entity: input_number.training_custom_cooldown_dur
+                icon: mdi:plus
+                show_icon: true
+                show_name: false
+                show_state: false
+                show_label: false
+                tap_action:
+                  action: perform-action
+                  perform_action: input_number.increment
+                  target:
+                    entity_id: input_number.training_custom_cooldown_dur
+                  haptic: light
+                hold_action:
+                  action: perform-action
+                  perform_action: input_number.increment
+                  target:
+                    entity_id: input_number.training_custom_cooldown_dur
+                  repeat: 200
+                double_tap_action:
+                  action: none
+                extra_styles: "ha-card { transition: transform 120ms ease, filter 120ms ease,\
+                  \ background-color 160ms ease; -webkit-tap-highlight-color: transparent;\
+                  \ } ha-card:active { transform: scale(0.98); filter: brightness(1.08); }"
+                styles:
+                  card:
+                  - height: 46px
+                  - box-sizing: border-box
+                  - padding: '0'
+                  - margin: '0'
+                  - background: var(--mlh-surface2)
+                  - color: var(--mlh-fg)
+                  - border: none
+                  - border-radius: 999px
+                  - box-shadow: none
+                  - opacity: "[[[ const direction = 1; if (!entity) return '0.35'; const n\
+                      \ = Number(entity.state), limit = Number(direction > 0 ? entity.attributes.max\
+                      \ : entity.attributes.min); return Number.isFinite(n) && Number.isFinite(limit)\
+                      \ && (direction > 0 ? n >= limit : n <= limit) ? '0.35' : '1'; ]]]"
+                  grid:
+                  - grid-template-areas: "\"i\""
+                  - grid-template-columns: 1fr
+                  - grid-template-rows: 1fr
+                  - height: 100%
+                  img_cell:
+                  - width: 100%
+                  - height: 100%
+                  icon:
+                  - width: 22px
+                  - height: 22px
+                  - color: var(--mlh-fg)
+              do_not_eval: true
+            l2: "[[[ return \"<span style=\\\"font-size:13px;font-weight:500;color:var(--mlh-fg)\\\
+              \">速度</span><span style=\\\"font-size:12px;font-weight:500;margin-left:6px;color:var(--mlh-muted)\\\
+              \">km/h</span>\"; ]]]"
+            m2:
+              card:
+                type: custom:button-card
+                entity: input_number.training_custom_cooldown_speed
+                icon: mdi:minus
+                show_icon: true
+                show_name: false
+                show_state: false
+                show_label: false
+                tap_action:
+                  action: perform-action
+                  perform_action: input_number.decrement
+                  target:
+                    entity_id: input_number.training_custom_cooldown_speed
+                  haptic: light
+                hold_action:
+                  action: perform-action
+                  perform_action: input_number.decrement
+                  target:
+                    entity_id: input_number.training_custom_cooldown_speed
+                  repeat: 200
+                double_tap_action:
+                  action: none
+                extra_styles: "ha-card { transition: transform 120ms ease, filter 120ms ease,\
+                  \ background-color 160ms ease; -webkit-tap-highlight-color: transparent;\
+                  \ } ha-card:active { transform: scale(0.98); filter: brightness(1.08); }"
+                styles:
+                  card:
+                  - height: 46px
+                  - box-sizing: border-box
+                  - padding: '0'
+                  - margin: '0'
+                  - background: var(--mlh-surface2)
+                  - color: var(--mlh-fg)
+                  - border: none
+                  - border-radius: 999px
+                  - box-shadow: none
+                  - opacity: "[[[ const direction = -1; if (!entity) return '0.35'; const\
+                      \ n = Number(entity.state), limit = Number(direction > 0 ? entity.attributes.max\
+                      \ : entity.attributes.min); return Number.isFinite(n) && Number.isFinite(limit)\
+                      \ && (direction > 0 ? n >= limit : n <= limit) ? '0.35' : '1'; ]]]"
+                  grid:
+                  - grid-template-areas: "\"i\""
+                  - grid-template-columns: 1fr
+                  - grid-template-rows: 1fr
+                  - height: 100%
+                  img_cell:
+                  - width: 100%
+                  - height: 100%
+                  icon:
+                  - width: 22px
+                  - height: 22px
+                  - color: var(--mlh-fg)
+              do_not_eval: true
+            v2: "[[[ const id = \"input_number.training_custom_cooldown_speed\"; const digits\
+              \ = 1; const size = \"21px\"; const fg = \"var(--mlh-fg)\"; const muted = \"\
+              var(--mlh-muted)\"; const s = states[id]; const n = s ? Number(s.state) : NaN;\
+              \ const ok = s && String(s.state).trim() !== '' && Number.isFinite(n); return\
+              \ '<span style=\"font-size:' + size + ';font-weight:700;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-0.01em;color:'\
+              \ + (ok ? fg : muted) + '\">' + (ok ? n.toFixed(digits) : '—') + '</span>';\
+              \ ]]]"
+            p2:
+              card:
+                type: custom:button-card
+                entity: input_number.training_custom_cooldown_speed
+                icon: mdi:plus
+                show_icon: true
+                show_name: false
+                show_state: false
+                show_label: false
+                tap_action:
+                  action: perform-action
+                  perform_action: input_number.increment
+                  target:
+                    entity_id: input_number.training_custom_cooldown_speed
+                  haptic: light
+                hold_action:
+                  action: perform-action
+                  perform_action: input_number.increment
+                  target:
+                    entity_id: input_number.training_custom_cooldown_speed
+                  repeat: 200
+                double_tap_action:
+                  action: none
+                extra_styles: "ha-card { transition: transform 120ms ease, filter 120ms ease,\
+                  \ background-color 160ms ease; -webkit-tap-highlight-color: transparent;\
+                  \ } ha-card:active { transform: scale(0.98); filter: brightness(1.08); }"
+                styles:
+                  card:
+                  - height: 46px
+                  - box-sizing: border-box
+                  - padding: '0'
+                  - margin: '0'
+                  - background: var(--mlh-surface2)
+                  - color: var(--mlh-fg)
+                  - border: none
+                  - border-radius: 999px
+                  - box-shadow: none
+                  - opacity: "[[[ const direction = 1; if (!entity) return '0.35'; const n\
+                      \ = Number(entity.state), limit = Number(direction > 0 ? entity.attributes.max\
+                      \ : entity.attributes.min); return Number.isFinite(n) && Number.isFinite(limit)\
+                      \ && (direction > 0 ? n >= limit : n <= limit) ? '0.35' : '1'; ]]]"
+                  grid:
+                  - grid-template-areas: "\"i\""
+                  - grid-template-columns: 1fr
+                  - grid-template-rows: 1fr
+                  - height: 100%
+                  img_cell:
+                  - width: 100%
+                  - height: 100%
+                  icon:
+                  - width: 22px
+                  - height: 22px
+                  - color: var(--mlh-fg)
+              do_not_eval: true
+            l3: "[[[ return \"<span style=\\\"font-size:13px;font-weight:500;color:var(--mlh-fg)\\\
+              \">坡度</span><span style=\\\"font-size:12px;font-weight:500;margin-left:6px;color:var(--mlh-muted)\\\
+              \">%</span>\"; ]]]"
+            m3:
+              card:
+                type: custom:button-card
+                entity: input_number.training_custom_cooldown_incline
+                icon: mdi:minus
+                show_icon: true
+                show_name: false
+                show_state: false
+                show_label: false
+                tap_action:
+                  action: perform-action
+                  perform_action: input_number.decrement
+                  target:
+                    entity_id: input_number.training_custom_cooldown_incline
+                  haptic: light
+                hold_action:
+                  action: perform-action
+                  perform_action: input_number.decrement
+                  target:
+                    entity_id: input_number.training_custom_cooldown_incline
+                  repeat: 200
+                double_tap_action:
+                  action: none
+                extra_styles: "ha-card { transition: transform 120ms ease, filter 120ms ease,\
+                  \ background-color 160ms ease; -webkit-tap-highlight-color: transparent;\
+                  \ } ha-card:active { transform: scale(0.98); filter: brightness(1.08); }"
+                styles:
+                  card:
+                  - height: 46px
+                  - box-sizing: border-box
+                  - padding: '0'
+                  - margin: '0'
+                  - background: var(--mlh-surface2)
+                  - color: var(--mlh-fg)
+                  - border: none
+                  - border-radius: 999px
+                  - box-shadow: none
+                  - opacity: "[[[ const direction = -1; if (!entity) return '0.35'; const\
+                      \ n = Number(entity.state), limit = Number(direction > 0 ? entity.attributes.max\
+                      \ : entity.attributes.min); return Number.isFinite(n) && Number.isFinite(limit)\
+                      \ && (direction > 0 ? n >= limit : n <= limit) ? '0.35' : '1'; ]]]"
+                  grid:
+                  - grid-template-areas: "\"i\""
+                  - grid-template-columns: 1fr
+                  - grid-template-rows: 1fr
+                  - height: 100%
+                  img_cell:
+                  - width: 100%
+                  - height: 100%
+                  icon:
+                  - width: 22px
+                  - height: 22px
+                  - color: var(--mlh-fg)
+              do_not_eval: true
+            v3: "[[[ const id = \"input_number.training_custom_cooldown_incline\"; const digits\
+              \ = 0; const size = \"21px\"; const fg = \"var(--mlh-fg)\"; const muted = \"\
+              var(--mlh-muted)\"; const s = states[id]; const n = s ? Number(s.state) : NaN;\
+              \ const ok = s && String(s.state).trim() !== '' && Number.isFinite(n); return\
+              \ '<span style=\"font-size:' + size + ';font-weight:700;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-0.01em;color:'\
+              \ + (ok ? fg : muted) + '\">' + (ok ? n.toFixed(digits) : '—') + '</span>';\
+              \ ]]]"
+            p3:
+              card:
+                type: custom:button-card
+                entity: input_number.training_custom_cooldown_incline
+                icon: mdi:plus
+                show_icon: true
+                show_name: false
+                show_state: false
+                show_label: false
+                tap_action:
+                  action: perform-action
+                  perform_action: input_number.increment
+                  target:
+                    entity_id: input_number.training_custom_cooldown_incline
+                  haptic: light
+                hold_action:
+                  action: perform-action
+                  perform_action: input_number.increment
+                  target:
+                    entity_id: input_number.training_custom_cooldown_incline
+                  repeat: 200
+                double_tap_action:
+                  action: none
+                extra_styles: "ha-card { transition: transform 120ms ease, filter 120ms ease,\
+                  \ background-color 160ms ease; -webkit-tap-highlight-color: transparent;\
+                  \ } ha-card:active { transform: scale(0.98); filter: brightness(1.08); }"
+                styles:
+                  card:
+                  - height: 46px
+                  - box-sizing: border-box
+                  - padding: '0'
+                  - margin: '0'
+                  - background: var(--mlh-surface2)
+                  - color: var(--mlh-fg)
+                  - border: none
+                  - border-radius: 999px
+                  - box-shadow: none
+                  - opacity: "[[[ const direction = 1; if (!entity) return '0.35'; const n\
+                      \ = Number(entity.state), limit = Number(direction > 0 ? entity.attributes.max\
+                      \ : entity.attributes.min); return Number.isFinite(n) && Number.isFinite(limit)\
+                      \ && (direction > 0 ? n >= limit : n <= limit) ? '0.35' : '1'; ]]]"
+                  grid:
+                  - grid-template-areas: "\"i\""
+                  - grid-template-columns: 1fr
+                  - grid-template-rows: 1fr
+                  - height: 100%
+                  img_cell:
+                  - width: 100%
+                  - height: 100%
+                  icon:
+                  - width: 22px
+                  - height: 22px
+                  - color: var(--mlh-fg)
+              do_not_eval: true
+          styles:
+            card:
+            - height: 100%
+            - box-sizing: border-box
+            - padding: 8px 14px
+            - margin: '0'
+            - overflow: hidden
+            - cursor: default
+            - background: var(--mlh-card)
+            - border: 1px solid var(--mlh-border)
+            - border-radius: 16px
+            - box-shadow: none
+            - color: var(--mlh-fg)
+            - font-size: 14px
+            - font-weight: '400'
+            - text-align: left
+            grid:
+            - grid-template-areas: "\"title title title title title title title title title\
+                \ title title\" \"l1 l1 l1 . l2 l2 l2 . l3 l3 l3\" \"m1 v1 p1 . m2 v2 p2 .\
+                \ m3 v3 p3\""
+            - grid-template-columns: 38px minmax(0, 1fr) 38px 10px 38px minmax(0, 1fr) 38px
+                10px 38px minmax(0, 1fr) 38px
+            - grid-template-rows: auto auto auto
+            - gap: 10px 0
+            - width: 100%
+            - height: 100%
+            - align-items: stretch
+            - justify-items: stretch
+            - align-content: center
+            custom_fields:
+              title:
+              - grid-area: title
+              - min-width: '0'
+              - min-height: '0'
+              - overflow: visible
+              - align-self: center
+              - justify-self: start
+              l1:
+              - grid-area: l1
+              - min-width: '0'
+              - min-height: '0'
+              - overflow: visible
+              - align-self: end
+              - justify-self: center
+              - white-space: nowrap
+              m1:
+              - grid-area: m1
+              - min-width: '0'
+              - min-height: '0'
+              - overflow: visible
+              - align-self: center
+              v1:
+              - grid-area: v1
+              - min-width: '0'
+              - min-height: '0'
+              - overflow: visible
+              - align-self: center
+              - justify-self: center
+              p1:
+              - grid-area: p1
+              - min-width: '0'
+              - min-height: '0'
+              - overflow: visible
+              - align-self: center
+              l2:
+              - grid-area: l2
+              - min-width: '0'
+              - min-height: '0'
+              - overflow: visible
+              - align-self: end
+              - justify-self: center
+              - white-space: nowrap
+              m2:
+              - grid-area: m2
+              - min-width: '0'
+              - min-height: '0'
+              - overflow: visible
+              - align-self: center
+              v2:
+              - grid-area: v2
+              - min-width: '0'
+              - min-height: '0'
+              - overflow: visible
+              - align-self: center
+              - justify-self: center
+              p2:
+              - grid-area: p2
+              - min-width: '0'
+              - min-height: '0'
+              - overflow: visible
+              - align-self: center
+              l3:
+              - grid-area: l3
+              - min-width: '0'
+              - min-height: '0'
+              - overflow: visible
+              - align-self: end
+              - justify-self: center
+              - white-space: nowrap
+              m3:
+              - grid-area: m3
+              - min-width: '0'
+              - min-height: '0'
+              - overflow: visible
+              - align-self: center
+              v3:
+              - grid-area: v3
+              - min-width: '0'
+              - min-height: '0'
+              - overflow: visible
+              - align-self: center
+              - justify-self: center
+              p3:
+              - grid-area: p3
+              - min-width: '0'
+              - min-height: '0'
+              - overflow: visible
+              - align-self: center
+        do_not_eval: true
+      save:
+        card:
+          type: custom:button-card
+          name: 儲存
+          icon: mdi:content-save
+          show_icon: false
+          show_name: false
+          show_state: false
+          show_label: false
+          tap_action:
+            action: navigate
+            navigation_path: /treadmill-remote/remote
+            haptic: light
+          hold_action:
+            action: none
+          double_tap_action:
+            action: none
+          extra_styles: "ha-card { transition: transform 120ms ease, filter 120ms ease, background-color\
+            \ 160ms ease; -webkit-tap-highlight-color: transparent; } ha-card:active { transform:\
+            \ scale(0.98); filter: brightness(1.08); }"
+          custom_fields:
+            lbl: "[[[ return \"<ha-icon icon=\\\"mdi:content-save\\\" style=\\\"--mdc-icon-size:22px;width:22px;height:22px;margin:0;flex:none;\\\
+              \"></ha-icon><span>儲存</span>\"; ]]]"
+          styles:
+            card:
+            - height: 100%
+            - box-sizing: border-box
+            - padding: 0 16px
+            - margin: '0'
+            - background: var(--mlh-primary)
+            - color: var(--mlh-on-primary)
+            - border: none
+            - border-radius: 999px
+            - box-shadow: none
+            grid:
+            - grid-template-areas: "\"lbl\""
+            - grid-template-columns: minmax(0, 1fr)
+            - grid-template-rows: 1fr
+            - height: 100%
+            custom_fields:
+              lbl:
+              - display: flex
+              - align-items: center
+              - justify-content: center
+              - gap: 8px
+              - font-size: 17px
+              - font-weight: '700'
+              - letter-spacing: 0.04em
+              - white-space: nowrap
+        do_not_eval: true
+    styles:
+      card:
+      - height: calc(100dvh - var(--header-height, 56px) - env(safe-area-inset-top, 0px) -
+          env(safe-area-inset-bottom, 0px))
+      - box-sizing: border-box
+      - margin: '0'
+      - padding: 12px
+      - background: var(--mlh-bg)
+      - color: var(--mlh-fg)
+      - border: none
+      - border-radius: '0'
+      - box-shadow: none
+      - overflow: hidden
+      - cursor: default
+      - font-size: 14px
+      - font-weight: '400'
+      - letter-spacing: normal
+      - text-align: left
+      - --mlh-bg: "[[[ return (hass.themes && hass.themes.darkMode) ? '#141311' : '#f7f5f1';\
+          \ ]]]"
+      - --mlh-card: "[[[ return (hass.themes && hass.themes.darkMode) ? '#1f1d1a' : '#ffffff';\
+          \ ]]]"
+      - --mlh-fg: "[[[ return (hass.themes && hass.themes.darkMode) ? '#f2eee8' : '#1d1b18';\
+          \ ]]]"
+      - --mlh-muted: "[[[ return (hass.themes && hass.themes.darkMode) ? '#a8a097' : '#6a645c';\
+          \ ]]]"
+      - --mlh-border: "[[[ return (hass.themes && hass.themes.darkMode) ? '#34302b' : '#e4ded6';\
+          \ ]]]"
+      - --mlh-surface2: "[[[ return (hass.themes && hass.themes.darkMode) ? '#2a2723' : '#efebe5';\
+          \ ]]]"
+      - --mlh-primary: "[[[ return (hass.themes && hass.themes.darkMode) ? '#e2a777' : '#9a5b2e';\
+          \ ]]]"
+      - --mlh-on-primary: "[[[ return (hass.themes && hass.themes.darkMode) ? '#1d1b18' :\
+          \ '#ffffff'; ]]]"
+      - --mlh-brand-tint: "[[[ return (hass.themes && hass.themes.darkMode) ? '#3a2a1c' :\
+          \ '#f3e7da'; ]]]"
+      - --mlh-brand-ink: "[[[ return (hass.themes && hass.themes.darkMode) ? '#f3c9a3' : '#6f3f1d';\
+          \ ]]]"
+      - --mlh-recovery: "[[[ return (hass.themes && hass.themes.darkMode) ? '#7fb0f0' : '#2b62a8';\
+          \ ]]]"
+      - --mlh-recovery-tint: "[[[ return (hass.themes && hass.themes.darkMode) ? '#1c2a3d'\
+          \ : '#e6eef8'; ]]]"
+      - --mlh-training: "[[[ return (hass.themes && hass.themes.darkMode) ? '#f0a066' : '#b3541a';\
+          \ ]]]"
+      - --mlh-training-tint: "[[[ return (hass.themes && hass.themes.darkMode) ? '#3a2617'\
+          \ : '#f8ebe1'; ]]]"
+      - --mlh-body: "[[[ return (hass.themes && hass.themes.darkMode) ? '#6fc4ad' : '#2a7a68';\
+          \ ]]]"
+      - --mlh-body-tint: "[[[ return (hass.themes && hass.themes.darkMode) ? '#15302a' : '#e2f1ec';\
+          \ ]]]"
+      - --mlh-nutrition: "[[[ return (hass.themes && hass.themes.darkMode) ? '#b9a0ea' : '#7a5bb0';\
+          \ ]]]"
+      - --mlh-nutrition-tint: "[[[ return (hass.themes && hass.themes.darkMode) ? '#2a2240'\
+          \ : '#efe9f7'; ]]]"
+      - --mlh-danger: "[[[ return (hass.themes && hass.themes.darkMode) ? '#f08a80' : '#b23a3a';\
+          \ ]]]"
+      - --mlh-danger-tint: "[[[ return (hass.themes && hass.themes.darkMode) ? '#3a1d1b' :\
+          \ '#fbeaea'; ]]]"
+      - --mlh-on-solid: "[[[ return (hass.themes && hass.themes.darkMode) ? '#1d1b18' : '#ffffff';\
+          \ ]]]"
+      - --mlh-caution: "[[[ return (hass.themes && hass.themes.darkMode) ? '#e0b85a' : '#8a6a12';\
+          \ ]]]"
+      grid:
+      - grid-template-areas: "\"total rounds\" \"ph1 ph1\" \"ph2 ph2\" \"ph3 ph3\" \"ph4 ph4\"\
+          \ \"save save\""
+      - grid-template-columns: minmax(0, 1fr) minmax(0, 1fr)
+      - grid-template-rows: minmax(0, 0.8fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr)
+          minmax(0, 1fr) 52px
+      - gap: 8px
+      - width: 100%
+      - max-width: 520px
+      - margin: 0 auto
+      - height: 100%
+      - align-items: stretch
+      - justify-items: stretch
+      custom_fields:
+        total:
+        - grid-area: total
+        - min-width: '0'
+        - min-height: '0'
+        - overflow: visible
+        - align-self: stretch
+        - justify-self: stretch
+        rounds:
+        - grid-area: rounds
+        - min-width: '0'
+        - min-height: '0'
+        - overflow: visible
+        - align-self: stretch
+        - justify-self: stretch
+        ph1:
+        - grid-area: ph1
+        - min-width: '0'
+        - min-height: '0'
+        - overflow: visible
+        - align-self: stretch
+        - justify-self: stretch
+        ph2:
+        - grid-area: ph2
+        - min-width: '0'
+        - min-height: '0'
+        - overflow: visible
+        - align-self: stretch
+        - justify-self: stretch
+        ph3:
+        - grid-area: ph3
+        - min-width: '0'
+        - min-height: '0'
+        - overflow: visible
+        - align-self: stretch
+        - justify-self: stretch
+        ph4:
+        - grid-area: ph4
+        - min-width: '0'
+        - min-height: '0'
+        - overflow: visible
+        - align-self: stretch
+        - justify-self: stretch
+        save:
+        - grid-area: save
+        - min-width: '0'
+        - min-height: '0'
+        - overflow: visible
+        - align-self: stretch
+        - justify-self: stretch

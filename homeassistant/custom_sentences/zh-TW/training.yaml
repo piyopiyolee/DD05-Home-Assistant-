@@ -1,11 +1,15 @@
 # 訓練課表語音指令（Assist 中文句子）
 # 部署位置：/config/custom_sentences/zh-TW/training.yaml
 # 注意：
-# 1. intent 名稱使用 Training*，且句子均含「訓練」或「課表」，
+# 1. intent 名稱使用 Training*，且句子均含「訓練」「課表」或「HIIT」，
 #    不會與 custom_sentences/zh-TW/treadmill.yaml 的 Treadmill* 及「開始走/暫停走/停止走」衝突。
 # 2. 「繼續訓練/訓練繼續/恢復訓練」對應 TrainingPause（暫停/繼續切換），
 #    在 script.training_pause 中只在 paused 狀態才繼續，idle 時不會誤啟動新課表；
 #    而 TrainingIntervalStart 僅負責「開始」句型。
+# 3. TrainingIntervalStart 仍由 intent_script 對到 script.training_interval_10（相容包裝）：
+#    先開啟 HIIT 開關，再用設定子頁目前的滑桿值開始（暫停中則視為繼續）。
+#    舊的「間歇訓練開始」句型全部保留；另加 HIIT 同義句。
+# 4. HIIT 同義句同時列出「有空格／無空格」兩種寫法（語音轉文字常在中英文之間插入空格）。
 language: "zh-TW"
 intents:
   TrainingIntervalStart:
@@ -15,6 +19,13 @@ intents:
           - "間歇訓練開始"
           - "開始訓練[課表]"
           - "訓練開始"
+          - "(開始|啟動|開啟)HIIT[訓練]"
+          - "(開始|啟動|開啟) HIIT[訓練]"
+          - "HIIT[訓練](開始|啟動)"
+          - "HIIT [訓練](開始|啟動)"
+          - "HIIT 訓練 (開始|啟動)"
+          - "(開始|啟動)高強度間歇[訓練]"
+          - "高強度間歇[訓練](開始|啟動)"
   TrainingPause:
     data:
       - sentences:
@@ -27,6 +38,11 @@ intents:
           - "恢復訓練[課表]"
           - "繼續間歇訓練"
           - "間歇訓練繼續"
+          - "(暫停|繼續|恢復)HIIT[訓練]"
+          - "(暫停|繼續|恢復) HIIT[訓練]"
+          - "HIIT[訓練](暫停|繼續|恢復)"
+          - "HIIT [訓練](暫停|繼續|恢復)"
+          - "HIIT 訓練 (暫停|繼續|恢復)"
   TrainingEnd:
     data:
       - sentences:
@@ -36,3 +52,8 @@ intents:
           - "訓練停止"
           - "間歇訓練結束"
           - "結束間歇訓練"
+          - "(結束|停止)HIIT[訓練]"
+          - "(結束|停止) HIIT[訓練]"
+          - "HIIT[訓練](結束|停止)"
+          - "HIIT [訓練](結束|停止)"
+          - "HIIT 訓練 (結束|停止)"

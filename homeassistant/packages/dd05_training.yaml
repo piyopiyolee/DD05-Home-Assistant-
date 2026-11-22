@@ -1,4 +1,4 @@
-# Home Assistant Training 課表執行器與課表（間歇 10 分／自訂課表）Package
+# Home Assistant Training 課表執行器與訓練課表 Package（HIIT／設定頁參數）
 # 部署位置：/config/packages/dd05_training.yaml（作者實機檔名為 training.yaml）
 # 需在 configuration.yaml 啟用：
 # homeassistant:
@@ -19,6 +19,13 @@ input_select:
       - resuming
       - finishing
     initial: idle
+
+# HIIT 開關（主畫面「HIIT」按鈕只切換這個 helper，不會啟動課表）
+# 刻意不設 initial：HA 重啟後由 restore state 還原上次開／關狀態。
+input_boolean:
+  training_hiit:
+    name: "HIIT"
+    icon: mdi:run-fast
 
 input_text:
   training_program:
@@ -334,7 +341,7 @@ template:
           {{ '%02d:%02d' | format(tot // 60, tot % 60) }}
 
 # ==============================================================================
-# 3. Scripts (通用執行器、控制腳本、課表定義)
+# 3. Scripts (通用執行器、控制腳本、課表定義、遙控主畫面包裝腳本)
 # ==============================================================================
 script:
   # ----------------------------------------------------------------------------
@@ -375,108 +382,31 @@ script:
                     tag: training_status
 
   # ----------------------------------------------------------------------------
-  # 課表定義 1：間歇 10 分（呼叫通用執行器 script.training_run）
-  # 總長剛好 600 秒：
-  #   暖身 45 秒（3.0/0 固定，不 ramp）
-  #   ＋ 5 輪 ×（快走 60 秒 4.5/4 ＋ 緩和 45 秒 3.0/0）＝ 525 秒
-  #   ＋ 收操 30 秒（2.0/0）
+  # 相容包裝：script.training_interval_10（entity_id 不可刪除）
+  # Google Home 場景「間歇訓練開始」與 Assist intent TrainingIntervalStart 仍指向這支腳本。
+  # 舊版內建的固定 10 分鐘課表（5 輪／暖身 45 秒…）已移除；
+  # 現在的行為：先開啟 HIIT 開關，再以設定子頁目前的滑桿值呼叫 script.training_custom。
+  # 暫停中則由 training_custom 既有邏輯視為「繼續」；訓練進行中則不動作。
   # ----------------------------------------------------------------------------
   training_interval_10:
-    alias: "間歇 10 分"
-    description: "0-45秒暖身(3.0/0)、5輪×(快走60秒 4.5/4＋緩和45秒 3.0/0)、收操30秒(2.0/0)，共10分鐘（600秒）。"
-    icon: mdi:run
+    alias: "HIIT（相容舊語音）"
+    description: "舊的「間歇訓練開始」語音／Google 場景入口：現在會開啟 HIIT（input_boolean.training_hiit），並用目前設定子頁的滑桿值開始 HIIT 課表（script.training_custom）；暫停中則視為繼續。不再內建固定 10 分鐘課表。"
+    icon: mdi:run-fast
     mode: single
+    max_exceeded: silent
     sequence:
-      - choose:
-          # 若在暫停狀態按「開始」，視同「繼續」
-          - conditions:
-              - condition: state
-                entity_id: input_select.training_state
-                state: paused
-            sequence:
-              - action: script.training_pause
-          # 若只在待機狀態才啟動新課表
-          - conditions:
-              - condition: state
-                entity_id: input_select.training_state
-                state: idle
-            sequence:
-              - action: script.turn_on
-                target:
-                  entity_id: script.training_run
-                data:
-                  variables:
-                    program_name: "間歇 10 分"
-                    rounds_total: 5
-                    segments:
-                      - name: "暖身"
-                        round: 0
-                        dur: 45
-                        s0: 3.0
-                        i0: 0
-                      - name: "第 1 輪：快走"
-                        round: 1
-                        dur: 60
-                        s0: 4.5
-                        i0: 4
-                      - name: "第 1 輪：緩和"
-                        round: 1
-                        dur: 45
-                        s0: 3.0
-                        i0: 0
-                      - name: "第 2 輪：快走"
-                        round: 2
-                        dur: 60
-                        s0: 4.5
-                        i0: 4
-                      - name: "第 2 輪：緩和"
-                        round: 2
-                        dur: 45
-                        s0: 3.0
-                        i0: 0
-                      - name: "第 3 輪：快走"
-                        round: 3
-                        dur: 60
-                        s0: 4.5
-                        i0: 4
-                      - name: "第 3 輪：緩和"
-                        round: 3
-                        dur: 45
-                        s0: 3.0
-                        i0: 0
-                      - name: "第 4 輪：快走"
-                        round: 4
-                        dur: 60
-                        s0: 4.5
-                        i0: 4
-                      - name: "第 4 輪：緩和"
-                        round: 4
-                        dur: 45
-                        s0: 3.0
-                        i0: 0
-                      - name: "第 5 輪：快走"
-                        round: 5
-                        dur: 60
-                        s0: 4.5
-                        i0: 4
-                      - name: "第 5 輪：緩和"
-                        round: 5
-                        dur: 45
-                        s0: 3.0
-                        i0: 0
-                      - name: "收操"
-                        round: 5
-                        dur: 30
-                        s0: 2.0
-                        i0: 0
+      - action: input_boolean.turn_on
+        target:
+          entity_id: input_boolean.training_hiit
+      - action: script.training_custom
 
   # ----------------------------------------------------------------------------
-  # 課表定義 2：自訂課表（讀取 input_number.training_custom_* 快照並呼叫 script.training_run）
+  # 課表定義：HIIT／自訂課表（讀取 input_number.training_custom_* 快照並呼叫 script.training_run）
   # 執行器不給特殊待遇；執行中更改 input_number 不影響本次訓練。
   # ----------------------------------------------------------------------------
   training_custom:
-    alias: "自訂課表"
-    description: "依目前自訂暖身／快走／緩和／收操與輪數設定快照組成課表，交由通用執行器執行；暫停時按開始視同繼續。"
+    alias: "HIIT 課表（依設定）"
+    description: "依設定子頁目前的暖身／快走／緩和／收操與輪數滑桿快照組成 HIIT 課表，交由通用執行器執行；暫停時按開始視同繼續。"
     icon: mdi:tune
     mode: single
     sequence:
@@ -524,7 +454,7 @@ script:
                   entity_id: script.training_run
                 data:
                   variables:
-                    program_name: "自訂課表"
+                    program_name: "HIIT"
                     rounds_total: "{{ n_rounds | int }}"
                     segments: "{{ custom_segments }}"
 
@@ -539,7 +469,7 @@ script:
     fields:
       program_name:
         description: "課表名稱"
-        example: "間歇 10 分"
+        example: "HIIT"
       rounds_total:
         description: "總輪數"
         example: 5
@@ -1267,6 +1197,84 @@ script:
                 title: "⏹️ 訓練已結束"
                 message: "{{ prog_name }} 已手動結束（已訓練時間：{{ el_mmss }}），走步機已停止。"
 
+  # ----------------------------------------------------------------------------
+  # 遙控主畫面包裝腳本（Lovelace 的 開始／暫停／停止 只呼叫這三支）
+  # 分流判斷集中在這裡，Lovelace 不寫條件樣板。
+  # 呼叫的 script.treadmill_start / treadmill_pause / treadmill_stop 位於 scripts.yaml（既有，未修改）。
+  # ----------------------------------------------------------------------------
+  treadmill_remote_start:
+    alias: "遙控 開始"
+    description: "訓練暫停中 → 繼續（script.training_custom）；HIIT 開啟且待機 → 依設定開始 HIIT（script.training_custom）；HIIT 關閉且待機 → 手動開始（script.treadmill_start）。訓練進行中則不動作。"
+    icon: mdi:play
+    mode: single
+    max_exceeded: silent
+    sequence:
+      - choose:
+          # 暫停中：視為繼續（training_custom 會轉去 training_pause）
+          - conditions:
+              - condition: state
+                entity_id: input_select.training_state
+                state: paused
+            sequence:
+              - action: script.training_custom
+          # HIIT 開啟且待機：用目前設定開始 HIIT
+          - conditions:
+              - condition: state
+                entity_id: input_boolean.training_hiit
+                state: "on"
+              - condition: state
+                entity_id: input_select.training_state
+                state: idle
+            sequence:
+              - action: script.training_custom
+          # HIIT 關閉且待機：手動開始走步機
+          - conditions:
+              - condition: state
+                entity_id: input_select.training_state
+                state: idle
+            sequence:
+              - action: script.treadmill_start
+
+  treadmill_remote_pause:
+    alias: "遙控 暫停"
+    description: "訓練狀態非 idle → script.training_pause（暫停／繼續課表）；否則 → script.treadmill_pause（手動暫停走步機）。"
+    icon: mdi:pause
+    mode: single
+    max_exceeded: silent
+    sequence:
+      - choose:
+          - conditions:
+              - condition: not
+                conditions:
+                  - condition: state
+                    entity_id: input_select.training_state
+                    state: idle
+            sequence:
+              - action: script.training_pause
+        default:
+          - action: script.treadmill_pause
+
+  treadmill_remote_stop:
+    alias: "遙控 停止"
+    description: "訓練狀態非 idle → script.training_end（結束課表並停止跑帶）；否則 → script.treadmill_stop（手動停止走步機）。"
+    icon: mdi:stop
+    # 停止鍵是安全動作，用 parallel 確保任何時候按下都會立即執行、不被前一次呼叫擋住
+    mode: parallel
+    max: 5
+    max_exceeded: silent
+    sequence:
+      - choose:
+          - conditions:
+              - condition: not
+                conditions:
+                  - condition: state
+                    entity_id: input_select.training_state
+                    state: idle
+            sequence:
+              - action: script.training_end
+        default:
+          - action: script.treadmill_stop
+
 # ==============================================================================
 # 4. Automations (安全守護與 HA 啟動重設)
 #    注意：絕不包含任何排程自動啟動課表的動作！
@@ -1445,3 +1453,39 @@ automation:
           entity_id: input_number.training_target_incline
         data:
           value: 0
+
+  # 顯示收尾：課表正常跑完後，script.training_run 會先寫「已完成」再把狀態設回 idle。
+  # 「已完成」維持 2 分鐘（且狀態為 idle）後，把階段與課表名稱收回待機。
+  # 只動 input_text helper；不按任何走步機按鈕、不呼叫 script.treadmill_*、不改 training_state。
+  # 2 分鐘內若開始新課表，phase 會離開「已完成」，state trigger 的 for 計時自動取消。
+  # 走步機自己累計的時間（sensor.treadmill_time_elapsed）與距離（sensor.treadmill_distance_total）
+  # 是 FTMS sensor，這裡不處理。
+  - id: training_clear_completed_phase
+    alias: "訓練完成後階段收回待機"
+    description: "input_text.training_phase 為「已完成」持續 2 分鐘且 input_select.training_state 為 idle 時，將階段設回「待機」、課表名稱設回「未開始」。不控制走步機。"
+    mode: single
+    max_exceeded: silent
+    triggers:
+      - trigger: state
+        entity_id: input_text.training_phase
+        to: "已完成"
+        for:
+          minutes: 2
+    conditions:
+      - condition: state
+        entity_id: input_select.training_state
+        state: idle
+      - condition: state
+        entity_id: input_text.training_phase
+        state: "已完成"
+    actions:
+      - action: input_text.set_value
+        target:
+          entity_id: input_text.training_phase
+        data:
+          value: "待機"
+      - action: input_text.set_value
+        target:
+          entity_id: input_text.training_program
+        data:
+          value: "未開始"
